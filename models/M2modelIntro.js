@@ -294,7 +294,11 @@ zygotine.M.BaseModel.prototype.doParameterValidation = function () {
 
 zygotine.M.BaseModel.prototype.compute = function (prngSeed) {
     if (typeof prngSeed === 'undefined') {
+      if ( zygotine.X.common.dataEntries.prngSeed.currentValue.length > 0 ) {
+        prngSeed = parseInt(zygotine.X.common.dataEntries.prngSeed.currentValue)
+      } else {
         prngSeed = (Math.random() * Math.pow(2, 31)) | 0;
+      }
     }
 
     var validationOnly = false;
