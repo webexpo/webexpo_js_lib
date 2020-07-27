@@ -30,7 +30,7 @@ zygotine.X.ready = function() {
 }
 zygotine.X.setDataEntries = function() {
   let entries = zygotine.X.common.dataEntries
-  entries.prngSeed = new zygotine.X.ValueBasedDataEntry("prngSeed", zygotine.X.genPseudoRand32Bit(), zygotine.X.i18n('algo-seed-expl', 'prngSeed'), true, 1, Math.pow(2,31)-1);
+  entries.prngSeed = new zygotine.X.ValueBasedDataEntry("prngSeed", zygotine.X.genPseudoRand32Bit(), zygotine.X.i18n('algo-seed-expl', 'prngSeed'), true, 1, Math.pow(2,31)-1)
 }
 
 zygotine.X.getNumericalResult = function (
@@ -168,7 +168,40 @@ zygotine.X.getNumericalResult = function (
             })()
         };
     }
+    
+    let calcAihaRiskBand = function(chainType = "p95") {
+      var qNorm = zygotine.S.normal.icdf
+      var lowerTail = true
+      var logP = false
+      var qNormOfPercOfInterest = qNorm(percOfInterest / 100, 0, 1, lowerTail, logP)
+      for (let i = 0; i < muC.length; i++) {
+        if ( chainType == "p95" ) {
+          chaine[i] = muC[i] + (qNormOfPercOfInterest * sigmaC[i])
+          if ( logN ) { chaine[i] = Math.exp(chaine[i]) }
+        } else if ( chainType == "am" ) {
+          chaine[i] = logN ? Math.exp(muC[i] + (0.5 * sigmaC[i] * sigmaC[i])) : muC[i];
+        }
+      }
 
+      let overexpo = function(scaleFactor = 1) { return 100 * chaine.filter(function (b) { return b > scaleFactor*oel; }).length / chaine.length; }
+      let riskVals = [
+        (100 - overexpo(.01)).toFixed(1),
+        (overexpo(.01) - overexpo(.1)).toFixed(1),
+        (overexpo(.1) - overexpo(.5)).toFixed(1),
+        (overexpo(.5) - overexpo()).toFixed(1),
+        overexpo().toFixed(1)
+      ]
+      return riskVals
+    }
+    reponse.aihaBandP95 = (function () {
+        let vals = calcAihaRiskBand("p95")
+        return { src: "aihaBandP95", logN: logN, q: vals, risk: vals.join(' / ') };
+    })()
+    reponse.aihaBandAM = (function () {
+        let vals = calcAihaRiskBand("am")
+        return { src: "aihaBandPAM", logN: logN, q: vals, risk: vals.join(' / ') };
+    })()
+    
     t = performance.now() - t0;
     return reponse;
 }; //zygotine.X.getNumericalResultFunctions

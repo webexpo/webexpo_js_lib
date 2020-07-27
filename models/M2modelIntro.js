@@ -1,4 +1,4 @@
-﻿/* eslint 
+/* eslint 
     valid-jsdoc: 0
     no-extra-parens: 0
 */
