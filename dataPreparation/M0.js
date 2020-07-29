@@ -775,6 +775,11 @@ zygotine.M.PastDataSummary =
             if (!isFinite(this.mean)) {
                 this.addError("Invalid data. Mean can not be parsed to a finite float.");
             }
+            /* STANDARDISATION */
+            if (zygotine.SEG.dataEntries.dstrn.currentValue == "logN") {
+              let oel = parseFloat(zygotine.SEG.dataEntries.oel.currentValue)
+              this.mean -= Math.log(oel)
+            }
 
             this.sd = Number(parameters[1]);
             if (!isFinite(this.sd) || this.sd <= 0) {
