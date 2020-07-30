@@ -552,7 +552,7 @@ zygotine.BW.getGlobalResult = function (
         };
 
         let rep = {
-            groupMean: { singleValue: new zygotine.S.Quantile([0.5]).compute(muOChain)[0] },
+            groupMean: { q: quantile.compute(muOChain) },
             aSdB: aSdFn(sbChain),
             aSdW: aSdFn(swChain),
             rho: rhoFn(),
