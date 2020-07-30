@@ -233,7 +233,7 @@ zygotine.M.SEGInformedVarModel.prototype.run = function (prngSeed, validationOnl
     }// for( int iter = 1 ...
 
     if (this.logN) {
-        result.addLogOelToMuChains(this.oel);
+        result.adjustMuChains(this.oel)
     }
 
     result.totalNumberOfIterations = iter;
@@ -460,7 +460,7 @@ zygotine.M.SEGUninformativeModel.prototype.run = function (prngSeed, validationO
     } // for (iter = 0; iter < nIterations; iter++) 
 
     if (this.logN) {
-        result.addLogOelToMuChains(this.oel);
+        result.adjustMuChains(this.oel)
     }
 
     result.totalNumberOfIterations = iter;
@@ -569,32 +569,41 @@ zygotine.M.BetweenWorkerModelResult.prototype.updateChains = function (muOverall
     this.chains["sigmaBetween" + burninOrSample].data[position] = sigmaBetween;
 };
 
-zygotine.M.BetweenWorkerModelResult.prototype.addLogOelToMuChains = function (oel) {
-    var wPrefixes = this.workerChainLabelPrefixes;
-    var logOel = Math.log(oel);
-    var chain;
-    for (let ip = 0; ip < wPrefixes.length; ip++) {
-        chain = this.chains[wPrefixes[ip] + 'Burnin'].data;
-        for (let ic = 0; ic < chain.length; ic++) {
-            chain[ic] += logOel;
-        }
 
-        chain = this.chains[wPrefixes[ip] + 'Sample'].data;
-        for (let ic = 0; ic < chain.length; ic++) {
-            chain[ic] += logOel;
-        }
-    }
+/*
+ * Standardisation
+ */
+zygotine.M.BetweenWorkerModelResult.prototype.adjustMuChains = function (oel) {
+  let logOel = Math.log(oel)
+  let muOverallB = this.chains["muOverallBurnin"].data
+  let muOverallS = this.chains["muOverallSample"].data
 
-    chain = this.chains["muOverallBurnin"].data;
+  for (let ic = 0; ic < muOverallB.length; ic++) {
+      muOverallB[ic] += logOel
+  }
+
+  for (let ic = 0; ic < muOverallS.length; ic++) {
+      muOverallS[ic] += logOel
+  }
+  
+  /*
+   * For each worker muChain, we need to add logOel AND muOverall
+   */
+  var wPrefixes = this.workerChainLabelPrefixes
+  var chain
+  for (let ip = 0; ip < wPrefixes.length; ip++) {
+    chain = this.chains[wPrefixes[ip] + 'Burnin'].data
     for (let ic = 0; ic < chain.length; ic++) {
-        chain[ic] += logOel;
+      chain[ic] += muOverallB[ic]
     }
 
-    chain = this.chains["muOverallSample"].data;
+    chain = this.chains[wPrefixes[ip] + 'Sample'].data
     for (let ic = 0; ic < chain.length; ic++) {
-        chain[ic] += logOel;
+      chain[ic] += muOverallS[ic]
     }
-};
+  }
+}
+
 
 /*******************************************/
 
@@ -835,7 +844,7 @@ zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly
     } // for (iter = 0; iter < nIterations; iter++) 
 
     if (this.logN) {
-        result.addLogOelToMuChains(this.oel);
+        result.adjustMuChains(this.oel)
     }
 
     result.totalNumberOfIterations = iter;
