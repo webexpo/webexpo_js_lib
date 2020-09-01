@@ -211,6 +211,44 @@ zygotine.M.ModelResult.prototype.getQuantileArray = function () {
     return rep;
 };
 
+/*
+ * Standardisation
+ */
+zygotine.M.ModelResult.prototype.adjustMuChains = function (oel) {
+  let logOel = Math.log(oel)
+  let isBW = typeof this.chains["muOverallBurnin"] !== 'undefined'
+  let muB = this.chains[isBW ? "muOverallBurnin" : "muBurnin"].data
+  let muS = this.chains[isBW ? "muOverallSample" : "muSample"].data
+
+  for (let ic = 0; ic < muB.length; ic++) {
+      muB[ic] += logOel
+  }
+
+  for (let ic = 0; ic < muS.length; ic++) {
+      muS[ic] += logOel
+  }
+  
+  /*
+   * For each worker muChain, we need to add logOel AND muOverall
+   */
+  
+  if ( isBW ) {
+    var wPrefixes = this.workerChainLabelPrefixes
+    var chain
+    for (let ip = 0; ip < wPrefixes.length; ip++) {
+      chain = this.chains[wPrefixes[ip] + 'Burnin'].data
+      for (let ic = 0; ic < chain.length; ic++) {
+        chain[ic] += muB[ic]
+      }
+
+      chain = this.chains[wPrefixes[ip] + 'Sample'].data
+      for (let ic = 0; ic < chain.length; ic++) {
+        chain[ic] += muS[ic]
+      }
+    }
+  }
+}
+
 /*******************************************/
 
 /***** BaseModel ***************************/

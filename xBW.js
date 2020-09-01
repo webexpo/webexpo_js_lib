@@ -504,6 +504,7 @@ zygotine.BW.getGlobalResult = function (
             //proba that correlation > threshold
             var risk = 100 * chaine.filter(function (b) { return b > wwct; }).length / chaine.length;
             var rep = quantile.compute(chaine);
+            chaine.sort(function (a, b) { return a - b; });
             chaine = [];
             return { logN: logN, q: rep, risk: risk };
         };

@@ -569,42 +569,6 @@ zygotine.M.BetweenWorkerModelResult.prototype.updateChains = function (muOverall
     this.chains["sigmaBetween" + burninOrSample].data[position] = sigmaBetween;
 };
 
-
-/*
- * Standardisation
- */
-zygotine.M.BetweenWorkerModelResult.prototype.adjustMuChains = function (oel) {
-  let logOel = Math.log(oel)
-  let muOverallB = this.chains["muOverallBurnin"].data
-  let muOverallS = this.chains["muOverallSample"].data
-
-  for (let ic = 0; ic < muOverallB.length; ic++) {
-      muOverallB[ic] += logOel
-  }
-
-  for (let ic = 0; ic < muOverallS.length; ic++) {
-      muOverallS[ic] += logOel
-  }
-  
-  /*
-   * For each worker muChain, we need to add logOel AND muOverall
-   */
-  var wPrefixes = this.workerChainLabelPrefixes
-  var chain
-  for (let ip = 0; ip < wPrefixes.length; ip++) {
-    chain = this.chains[wPrefixes[ip] + 'Burnin'].data
-    for (let ic = 0; ic < chain.length; ic++) {
-      chain[ic] += muOverallB[ic]
-    }
-
-    chain = this.chains[wPrefixes[ip] + 'Sample'].data
-    for (let ic = 0; ic < chain.length; ic++) {
-      chain[ic] += muOverallS[ic]
-    }
-  }
-}
-
-
 /*******************************************/
 
 /***** BetweenWorkerModel ***************/
