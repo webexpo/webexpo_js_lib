@@ -195,6 +195,7 @@ zygotine.M.Measure = function () {
     this.ordinal = 0;
     this.type = undefined;
     this.workerId = "";
+    this.intervalSeparator = '-'
 };
 
 /**
@@ -223,7 +224,7 @@ zygotine.M.Measure.prototype.toString = function (fieldSep) {
         case 'interval':
             rep[0] = "[";
             rep[1] = this.a;
-            rep[2] = ",";
+            rep[2] = this.intervalSeparator;
             rep[3] = this.b;
             rep[4] = "]";
             break;
@@ -272,6 +273,7 @@ zygotine.M.ExtendedMeasure = function (m) {
     this.ordinal = m.ordinal;
     this.type = m.type;
     this.workerId = m.workerId;
+    this.intervalSeparator = '-';
     this.generatedValue = this.getInitialValue();
 };
 
@@ -301,7 +303,7 @@ zygotine.M.ExtendedMeasure.prototype.toString = function () {
         case 'interval':
             rep[0] = "[";
             rep[1] = this.a;
-            rep[2] = ",";
+            rep[2] = this.intervalSeparator;
             rep[3] = this.b;
             rep[4] = "]";
             break;
@@ -355,6 +357,7 @@ zygotine.M.MeasureList = function (s, withWorkerInfo) {
     this.nWAssigned = 0; // aucune mesure n'a un travailleur associé
     this.min = Infinity;
     this.max = -Infinity;
+    this.intervalSeparator = '-'
 
     var fmt = zygotine.U.fmt;
 
@@ -496,7 +499,7 @@ zygotine.M.MeasureList.prototype.parseMeasure = function (str) {
             if (!pm.invalid) {
                 //tout ce qu'il y a entre les 2 crochets
                 str = str.substring(1, str.length - 1);
-                var numbers = str.split(',');
+                var numbers = str.split(this.intervalSeparator);
                 if (numbers.length === 2) {
                     pm.type = "interval";
                     pm.a = Number(numbers[0]);
