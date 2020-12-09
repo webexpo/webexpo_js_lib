@@ -499,7 +499,7 @@ zygotine.M.MeasureList.prototype.parseMeasure = function (str) {
             if (!pm.invalid) {
                 //tout ce qu'il y a entre les 2 crochets
                 str = str.substring(1, str.length - 1);
-                var numbers = str.split(this.intervalSeparator);
+                var numbers = str.split(/[,-]/);
                 if (numbers.length === 2) {
                     pm.type = "interval";
                     pm.a = Number(numbers[0]);
