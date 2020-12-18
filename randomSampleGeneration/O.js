@@ -342,7 +342,7 @@ zygotine.O.SigmaGenObject.prototype = {
             return xA.map(self.f, self);
         };
 
-        return new zNum.NumericIntegration(F, lowerBound, upperBound).compute();
+        return new zygotine.Num.NumericIntegration(F, lowerBound, upperBound).compute();
     },
 
     logF: function (sigma) {
@@ -530,7 +530,7 @@ zygotine.O.sigmaGenICdf = function (n, beta, lNormMu, lNormSd, range, newtonRaph
         var logK = Math.log(area);
     } else {
         let alpha = (n - 2.0) / 2.0;
-        logK = alpha * Math.log(beta) - zNum.logGamma(alpha) - Math.log(2 * Math.PI) / 2 - Math.log(lNormSd);
+        logK = alpha * Math.log(beta) - zygotine.Num.logGamma(alpha) - Math.log(2 * Math.PI) / 2 - Math.log(lNormSd);
     }
 
     // Define f and F (fcum) (somewhat) standardized
