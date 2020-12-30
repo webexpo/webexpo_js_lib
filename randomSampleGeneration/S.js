@@ -961,12 +961,12 @@ zS.poisson.pdf.dpois_raw = function (x, lambda, logP) {
     if (x <= lambda * zU.CONST.DBL_MIN) return ((logP ? (-lambda) : Math.exp(-lambda)));
     if (lambda < x * zU.CONST.DBL_MIN)
         return (logP
-            ? (-lambda + x * Math.log(lambda) - zNum.logGamma(x + 1))
-            : Math.exp(-lambda + x * Math.log(lambda) - zNum.logGamma(x + 1)));
+            ? (-lambda + x * Math.log(lambda) - zygotine.Num.logGamma(x + 1))
+            : Math.exp(-lambda + x * Math.log(lambda) - zygotine.Num.logGamma(x + 1)));
 
     // ci-bas réécriture de : return (RVaria.R_D_fexp(RVaria.M_2PI * x, -Functions.StirlingError(x) - RVaria.bd0(x, lambda), logP));
     var vf = zU.CONST.M_2PI * x;
-    var vx = -zNum.stirlingError(x) - zNum.bd0(x, lambda);
+    var vx = -zygotine.Num.stirlingError(x) - zygotine.Num.bd0(x, lambda);
     if (logP) {
         return -0.5 * Math.log(vf) + (vx);
     } else {
@@ -993,7 +993,7 @@ zS.poisson.pdf.dpois_wrap = function (x_plus_1, lambda, giveLog) {
     }
 
     if (lambda > Math.abs(x_plus_1 - 1) * zS.poisson.cutoff) {
-        x = -lambda - zNum.logGamma(x_plus_1);
+        x = -lambda - zygotine.Num.logGamma(x_plus_1);
         return (giveLog ? x : Math.exp(x));
     }
     else {
@@ -1145,7 +1145,7 @@ zS.gamma.lgamma1p = function (a) {
     var /*int*/ i;
 
     if (Math.abs(a) >= 0.5) {
-        return zNum.logGamma(a + 1);
+        return zygotine.Num.logGamma(a + 1);
     }
 
     /* Abramowitz & Stegun 6.1.33 : for |x| < 2,
@@ -1676,7 +1676,7 @@ zS.gamma.icdf = function (p, shape, scale, lowerTail, logP) {
 
     p_ = zS.R_DT_qIv(p, lowerTail, logP);/* lower_tail prob (in any case) */
 
-    g = zNum.logGamma(shape);/* log Gamma(v/2) */
+    g = zygotine.Num.logGamma(shape);/* log Gamma(v/2) */
 
     /*----- Phase I : Starting Approximation */
     ch = zS.gamma.icdf.qchisq_appr(p, 2 * shape, g, lowerTail, logP, EPS1);
