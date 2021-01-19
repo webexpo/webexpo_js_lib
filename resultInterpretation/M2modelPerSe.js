@@ -164,6 +164,8 @@ zygotine.M.SEGInformedVarModel.prototype.run = function (prngSeed, validationOnl
     /** @type {zygotine.M.SEGInformedVarModelParameters} */
     var sp = this.specificParameters;
     var logN = sp.logN;
+    var zO = zygotine.O;
+    
     var data = new zygotine.M.DataSummary(this.measureList, sp.logN);
     /** @type {zygotine.O.YGen} */
     var genY = new zO.YGen(sp.logN);
