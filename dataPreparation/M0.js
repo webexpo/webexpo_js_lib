@@ -756,7 +756,7 @@ zygotine.M.DataSummary.prototype.className = "DataSummary";
 * @property {number} shape
 */
 zygotine.M.PastDataSummary =
-    function (/** string */ def, isLogNDist, oel) {
+    function (/** string */ def, isLogNDist = false, oel ) {
         zygotine.M.ErrorLogging.call(this);
         this.defined = false; // a priori l'objet est bidon
         if (typeof def === "undefined") {
@@ -775,19 +775,20 @@ zygotine.M.PastDataSummary =
         }
         else {
             this.mean = Number(parameters[0]);
+            let standardizeMean = false
             if (!isFinite(this.mean)) {
                 this.addError("Invalid data. Mean can not be parsed to a finite float.");
             }
             /* STANDARDISATION */
             if (zygotine.SEG != undefined) {
-                standardize = zygotine.SEG.dataEntries.dstrn.currentValue == "logN"
+                standardizeMean = zygotine.SEG.dataEntries.dstrn.currentValue == "logN"
                 oel = parseFloat(zygotine.SEG.dataEntries.oel.currentValue)
             } else
             if ( isLogNDist && oel != undefined ) {
-                standardize = true
+                standardizeMean = true
             }
 
-            if ( standardize ) {
+            if ( standardizeMean ) {
               this.mean -= Math.log(oel)
             }
 
