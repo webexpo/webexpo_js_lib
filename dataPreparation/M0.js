@@ -1,12 +1,4 @@
-﻿/* eslint 
-    valid-jsdoc: 0
-    no-extra-parens: 0
-*/
-/// <reference path="A.js" />
-/// <reference path="U.js" />
-/// <reference path="S.js" />
-
-zygotine.M = {};
+﻿zygotine.M = {};
 
 /*****  ErrorLogging  **********/
 
@@ -807,6 +799,7 @@ zygotine.M.PastDataSummary =
             if (!this.hasError) {
                 this.defined = true;
                 this.ns2 = (this.n - 1) * (this.sd * this.sd);
+                this.sum = this.n * this.mean
             }
         }
     };
