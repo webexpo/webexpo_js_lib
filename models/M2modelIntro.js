@@ -332,7 +332,7 @@ zygotine.M.BaseModel.prototype.doParameterValidation = function () {
 
 zygotine.M.BaseModel.prototype.compute = function (prngSeed) {
     if (typeof prngSeed === 'undefined') {
-      if ( zygotine.X.common.dataEntries.prngSeed.currentValue.length > 0 ) {
+      if ( zygotine.X !== undefined && zygotine.X.common.dataEntries.prngSeed !== undefined && zygotine.X.common.dataEntries.prngSeed.currentValue.length > 0 ) {
         prngSeed = parseInt(zygotine.X.common.dataEntries.prngSeed.currentValue)
       } else {
         prngSeed = zygotine.X.genPseudoRand32Bit()
