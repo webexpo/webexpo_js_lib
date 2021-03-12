@@ -1,5 +1,5 @@
 // Riskband/Banerjee algorithm
-// Author -- Patrick B�lisle
+// Author -- Patrick B?lisle
 
 // Version 0.1 (Mar 2021)
 
@@ -542,7 +542,7 @@ run_Riskband = function()
   
   console.clear();
   ClearRiskbandErrorMsg();
-  PleaseBePatient();
+  //PleaseBePatient();
   
   
     ////////////////////////////////////////////////////////////////////////////
@@ -763,9 +763,9 @@ run_Riskband = function()
   }
   
 
-  WorkComplete(sample);
+  //WorkComplete(sample);
   
       
   // ICI on verra bien ce qu-il faut faire avec les chaines de parms pour les retourner a l'utilisateur, en faire des graphiques, des sommaires, etc.
-  
+  return {burnin, sample}
 } // end of run_Riskband

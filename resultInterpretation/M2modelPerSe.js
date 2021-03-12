@@ -1,4 +1,4 @@
-ï»¿/* eslint 
+/* eslint 
     valid-jsdoc: 0
     no-extra-parens: 0
 */
@@ -36,7 +36,7 @@ zygotine.M.SEGInformedVarModelParameters = function (logN, oel) {
     if (!logN) {
         this.muLower = 40;
         this.muUpper = 125;
-        this.logSigmaMu = 1.0986122886681098; //#(GM = 3) // corrigÃ© le 31 mai log(3)
+        this.logSigmaMu = 1.0986122886681098; //#(GM = 3) // corrigé le 31 mai log(3)
         this.logSigmaPrec = 1.191059; //(GSD=2.5)
         this.initMu = 85;
         this.initSigma = 3;
@@ -52,7 +52,7 @@ zygotine.M.SEGInformedVarModelParameters.prototype = Object.create(zygotine.M.Mo
 /**
 * Represents result for the SEGInformedVar model
 * @constructor
-* @param {zygotine.M.SEGInformedVarModel} model - le modÃ¨le qui produira les rÃ©sultats seront affichÃ©s
+* @param {zygotine.M.SEGInformedVarModel} model - le modèle qui produira les résultats seront affichés
 *
 * @property {string} mcmcParameters
 * @property {string} measureList
@@ -78,7 +78,7 @@ zygotine.M.SEGInformedVarModelResult.prototype.className = "SEGInformedVarModelR
 * Represents a model
 * @constructor
 * @param {zygotine.M.MeasureList} measureList - la liste des mesures
-* @param {zygotine.M.SEGInformedVarModelParameters} specificParameters  - les paramÃ¨tres propres au modÃ¨le
+* @param {zygotine.M.SEGInformedVarModelParameters} specificParameters  - les paramètres propres au modèle
 * @param {zygotine.M.McmcParameters} mcmcParameters - MCMC parameters
 * @param {zygotine.M.PastDataSummary} pds - past data summary
 *
@@ -117,8 +117,8 @@ zygotine.M.SEGInformedVarModel.prototype.paramMissing = "SEGInformedVar model co
 zygotine.M.SEGInformedVarModel.prototype.MEAny = false;
 
 /**
-* mÃ©thode privÃ©e, ne devrait Ãªtre appelÃ©e que de doParameterValidation ou de compute.
-* les deux paramÃ¨tres doivent Ãªtre prÃ©sents et bien dÃ©finits. Le premier est un entier et le second un boolÃ©en.
+* méthode privée, ne devrait être appelée que de doParameterValidation ou de compute.
+* les deux paramètres doivent être présents et bien définits. Le premier est un entier et le second un booléen.
 * @method
 *
 * @returns {SEGInformedVarModelResult}
@@ -126,7 +126,7 @@ zygotine.M.SEGInformedVarModel.prototype.MEAny = false;
 zygotine.M.SEGInformedVarModel.prototype.run = function (prngSeed, validationOnly) {
     /** @type {zygotine.M.SEGInformedVarModelResult} */
     var result = new zygotine.M.SEGInformedVarModelResult(this);
-    this.validateParameters__(result); // MÃ©thode de BaseModel
+    this.validateParameters__(result); // Méthode de BaseModel
 
     if (validationOnly) {
         result.addInfo("Parameters validation performed.");
@@ -136,8 +136,8 @@ zygotine.M.SEGInformedVarModel.prototype.run = function (prngSeed, validationOnl
         return result;
     }
 
-    // L'objectif n'Ã©tait pas que de valider les paramÃ¨tres.
-    // De plus les paramÃ¨tres sont valides.
+    // L'objectif n'était pas que de valider les paramètres.
+    // De plus les paramètres sont valides.
     // On poursuit donc avec le calcul des chaines.
 
 
@@ -259,7 +259,7 @@ zygotine.M.SEGInformedVarModel.prototype.run = function (prngSeed, validationOnl
 zygotine.M.SEGUninformativeModelParameters = function (logN, oel) {
     zygotine.M.ModelParameters.call(this, logN, oel);
     if (logN) {
-        // this.logN = logN; // modif fÃ©vrier 2020 instruction inutile
+        // this.logN = logN; // modif février 2020 instruction inutile
         this.muLower = -20;
         this.muUpper = 20;
         this.initMu = -1.2039728043259361; // log(0.3) 
@@ -284,12 +284,12 @@ zygotine.M.SEGUninformativeModelParameters.prototype = Object.create(zygotine.M.
 /**
 * Represents result for the SEGUninformativeModel model
 * @constructor
-* @param {zygotine.M.SEGUninformativeModel} model - le modÃ¨le auquel sont rattachÃ©s les rÃ©sultats
+* @param {zygotine.M.SEGUninformativeModel} model - le modèle auquel sont rattachés les résultats
 *
 * @property {string} mcmcParameters
 * @property {string} measureList
 * @property {zygotine.M.Messages} messages
-* @property {zygotine.M.SEGUninformativeModel} model // modif fÃ©vrier 2020 : le type du modÃ¨le Ã©tait incorrect.
+* @property {zygotine.M.SEGUninformativeModel} model // modif février 2020 : le type du modèle était incorrect.
 * @property {zygotine.M.PastDataSummary} pastData 
 * @property {string} specificParameters
 * @property {number} totalNumberOfIterations
@@ -309,15 +309,15 @@ zygotine.M.SEGUninformativeModelResult.prototype.className = "SEGUninformativeMo
 * Represents a model
 * @constructor
 * @param {zygotine.M.MeasureList} measureList - une liste de mesures
-* @param {zygotine.M.SEGInformedVarModelParameters} specificParameters - des paramÃ¨tres propres au modÃ¨le en balisant l'exÃ©cution
-* @param {zygotine.M.McmcParameters} mcmcParameters - les paramÃ¨tres MCMC 
+* @param {zygotine.M.SEGInformedVarModelParameters} specificParameters - des paramètres propres au modèle en balisant l'exécution
+* @param {zygotine.M.McmcParameters} mcmcParameters - les paramètres MCMC 
 *
-* @property {string} className - le nom de la classe, hÃ©ritÃ© de BaseModel
-* @property {boolean} hasError - vrai si une erreur a Ã©tÃ© dÃ©tectÃ©, sinon faux, hÃ©ritÃ© de LoggingError via BaseModel
-* @property {zygotine.M.McmcParameters} mcmcParameters = les paramÃ¨tres MCMC, hÃ©ritÃ©s de BaseModel
-* @property {zygotine.M.MeasureList} measureList - la liste de mesures utilisÃ©e, hÃ©ritÃ©e de BaseModel
-* @property {zygotine.M.Messages} messages - une liste de messages d'erreurs ou de mises en garde, hÃ©ritÃ©s de LoggingError via BaseModel
-* @property {zygotine.M.SEGInformedVarModelParameters} specificParameters  - les paramÃ¨tres propres Ã  l'exÃ©cution du modÃ¨le, hÃ©ritÃ©s de BaseModel
+* @property {string} className - le nom de la classe, hérité de BaseModel
+* @property {boolean} hasError - vrai si une erreur a été détecté, sinon faux, hérité de LoggingError via BaseModel
+* @property {zygotine.M.McmcParameters} mcmcParameters = les paramètres MCMC, hérités de BaseModel
+* @property {zygotine.M.MeasureList} measureList - la liste de mesures utilisée, héritée de BaseModel
+* @property {zygotine.M.Messages} messages - une liste de messages d'erreurs ou de mises en garde, hérités de LoggingError via BaseModel
+* @property {zygotine.M.SEGInformedVarModelParameters} specificParameters  - les paramètres propres à l'exécution du modèle, hérités de BaseModel
 */
 zygotine.M.SEGUninformativeModel =
     function (
@@ -332,10 +332,10 @@ zygotine.M.SEGUninformativeModel.prototype.className = "SEGUninformativeModel";
 zygotine.M.SEGUninformativeModel.prototype.paramMissing = "SEGUninformativeModel constructor: the following parameters are required:  measureList, specificParameters, mcmcParameters.";
 zygotine.M.SEGUninformativeModel.prototype.MEAny = false;
 
-// modif fÃ©vrier 2020 ajout du commentaire qui suit
+// modif février 2020 ajout du commentaire qui suit
 /**
-* mÃ©thode privÃ©e, ne devrait Ãªtre appelÃ©e que de doParameterValidation ou de compute.
-* les deux paramÃ¨tres doivent Ãªtre prÃ©sents et bien dÃ©finis. Le premier est un entier et le second un boolÃ©en.
+* méthode privée, ne devrait être appelée que de doParameterValidation ou de compute.
+* les deux paramètres doivent être présents et bien définis. Le premier est un entier et le second un booléen.
 * @method
 *
 * @returns {SEGUninformativeModelResult}
@@ -343,8 +343,8 @@ zygotine.M.SEGUninformativeModel.prototype.MEAny = false;
 zygotine.M.SEGUninformativeModel.prototype.run = function (prngSeed, validationOnly) {
 
     /** @type {zygotine.M.SEGUninformativeModelParameters} */
-    var result = new zygotine.M.SEGUninformativeModelResult(this); // modif fÃ©vrier 2020 : on a remplacÃ© SEGUninformativeModelParameters par SEGUninformativeModelResult
-    this.validateParameters__(result); // MÃ©thode de BaseModel
+    var result = new zygotine.M.SEGUninformativeModelResult(this); // modif février 2020 : on a remplacé SEGUninformativeModelParameters par SEGUninformativeModelResult
+    this.validateParameters__(result); // Méthode de BaseModel
 
     if (validationOnly) {
         result.addInfo("Parameters validation performed.");
@@ -354,9 +354,9 @@ zygotine.M.SEGUninformativeModel.prototype.run = function (prngSeed, validationO
         return result;
     }
 
-    //les paramÃ¨tres d'entrÃ©e sont valides. On sauvegarde la racine du gÃ©nÃ©rateur de nbr alÃ©atoires.
+    //les paramètres d'entrée sont valides. On sauvegarde la racine du générateur de nbr aléatoires.
 
-    // modif fÃ©vrier 2020, 3 lignes suivantes mise en commentaires, la responsabilitÃ© des seed relÃ¨ve de la mÃ©thode compute.
+    // modif février 2020, 3 lignes suivantes mise en commentaires, la responsabilité des seed relève de la méthode compute.
     /*
     if (typeof prngSeed === 'undefined') {
         prngSeed = (Math.random() * Math.pow(2, 31)) | 0;
@@ -401,7 +401,7 @@ zygotine.M.SEGUninformativeModel.prototype.run = function (prngSeed, validationO
         mu = sp.initMu,
         muLim = [sp.muLower, sp.muUpper],
         sdRange = [sp.sdRange[0], sp.sdRange[1]],
-        tauCondAlpha = (data.n - 1.0) / 2.0, // modif fÃ©vrier 2020: on a remplacÃ© "data.n / 2 - 1" par "(data.n - 1.0) / 2.0"
+        tauCondAlpha = (data.n - 1.0) / 2.0, // modif février 2020: on a remplacé "data.n / 2 - 1" par "(data.n - 1.0) / 2.0"
         // tauCondAlpha = (data.n  / 2.0) - 1.0, 
         tauBeta = 0.0,
         tauRange = [1.0 / (sp.sdRange[1] * sp.sdRange[1]), 1.0 / (sp.sdRange[0] * sp.sdRange[0])],
@@ -476,20 +476,20 @@ zygotine.M.SEGUninformativeModel.prototype.run = function (prngSeed, validationO
 /**
 * Represents parameters for a model (BetweenWorkerModel)
 * @constructor
-* @param {boolean} logNormDstrn - lorsque faux, on considÃ¨re faire affaire avec la loi normale.
-* @param {boolean} uupOnSds  - lorsque vrai, on utilise la loi normale pour les priors des Ã©carts-type
+* @param {boolean} logNormDstrn - lorsque faux, on considère faire affaire avec la loi normale.
+* @param {boolean} uupOnSds  - lorsque vrai, on utilise la loi normale pour les priors des écarts-type
 * @param {number} oel - la valeur d'exposition limite  
 *
 * @property {number} initMuOverall - valeur initiale de muOverall
 * @property {number} initSigmaWithin - valeur initiale de sigmaWithin
-* @property {number} muOverallLower - borne infÃ©rieure pour la prior 'uniforme' de muOverall
-* @property {number} muOverallUppper - borne supÃ©rieure pour la prior 'uniforme' de muOverall
-* @property {number[]} sigmaBetweenRange - lorsque uupOnSds est vrai, dÃ©finit l'interval balisant la prior 'uniforme' de sigmaBetween
-* @property {number[]} sigmaWithinRange - lorsque uupOnSds est vrai, dÃ©finit l'interval balisant la prior 'uniforme' de sigmaWithin
-* @property {number} logSigmaWithinMu - lorsque uupOnSds est faux, paramÃ¨tre pour la prior de sigmaWithin
-* @property {number} logSigmaWithinPrec - lorsque uupOnSds est faux, paramÃ¨tre pour la prior de sigmaWithin
-* @property {number} logsigmaBetweenMu - lorsque uupOnSds est faux, paramÃ¨tre pour la prior de sigmaBetween
-* @property {number} logsigmaBetweenPrec - lorsque uupOnSds est faux, paramÃ¨tre pour la prior de sigmaBetween
+* @property {number} muOverallLower - borne inférieure pour la prior 'uniforme' de muOverall
+* @property {number} muOverallUppper - borne supérieure pour la prior 'uniforme' de muOverall
+* @property {number[]} sigmaBetweenRange - lorsque uupOnSds est vrai, définit l'interval balisant la prior 'uniforme' de sigmaBetween
+* @property {number[]} sigmaWithinRange - lorsque uupOnSds est vrai, définit l'interval balisant la prior 'uniforme' de sigmaWithin
+* @property {number} logSigmaWithinMu - lorsque uupOnSds est faux, paramètre pour la prior de sigmaWithin
+* @property {number} logSigmaWithinPrec - lorsque uupOnSds est faux, paramètre pour la prior de sigmaWithin
+* @property {number} logsigmaBetweenMu - lorsque uupOnSds est faux, paramètre pour la prior de sigmaBetween
+* @property {number} logsigmaBetweenPrec - lorsque uupOnSds est faux, paramètre pour la prior de sigmaBetween
 
 */
 zygotine.M.BetweenWorkerModelParameters = function (logN, uupOnSds, oel) {
@@ -497,7 +497,7 @@ zygotine.M.BetweenWorkerModelParameters = function (logN, uupOnSds, oel) {
 
     this.uupOnSds = uupOnSds;
 
-    //les 2 premiers paramÃ¨tres, balisant muOverall, sont prÃ©sents quelle que soit la valeur de uupOnSds
+    //les 2 premiers paramètres, balisant muOverall, sont présents quelle que soit la valeur de uupOnSds
 
     if (logN) {
         this.initMuOverall = -1.20397; // log(0.3)
@@ -511,7 +511,7 @@ zygotine.M.BetweenWorkerModelParameters = function (logN, uupOnSds, oel) {
         this.muOverallUpper = 125;
     }
 
-    // les 6 paramÃ¨tres suivants sont divisÃ©s en 2 groupes selon la valeur de uupOnSds
+    // les 6 paramètres suivants sont divisés en 2 groupes selon la valeur de uupOnSds
     if (uupOnSds) {
         if (logN) {
             this.sigmaBetweenRange = [0.0, 2.3]; 
@@ -579,15 +579,15 @@ zygotine.M.BetweenWorkerModelResult.prototype.updateChains = function (muOverall
 * Represents a model
 * @constructor
 * @param {zygotine.M.MeasureList} measureList - une liste de mesures
-* @param {zygotine.M.BetweenWorkerModelParameters} specificParameters - des paramÃ¨tres propres au modÃ¨le qui en balisent l'exÃ©cution
-* @param {zygotine.M.McmcParameters} mcmcParameters - les paramÃ¨tres MCMC 
+* @param {zygotine.M.BetweenWorkerModelParameters} specificParameters - des paramètres propres au modèle qui en balisent l'exécution
+* @param {zygotine.M.McmcParameters} mcmcParameters - les paramètres MCMC 
 *
-* @property {string} className - le nom de la classe, hÃ©ritÃ© de BaseModel
-* @property {boolean} hasError - vrai si une erreur a Ã©tÃ© dÃ©tectÃ©, sinon faux, hÃ©ritÃ© de LoggingError via BaseModel
-* @property {zygotine.M.McmcParameters} mcmcParameters = les paramÃ¨tres MCMC, hÃ©ritÃ©s de BaseModel
-* @property {zygotine.M.MeasureList} measureList - la liste de mesures utilisÃ©e, hÃ©ritÃ©e de BaseModel
-* @property {zygotine.M.Messages} messages - une liste de messages d'erreurs, de messages d'information ou de mises en garde, hÃ©ritÃ©e de LoggingError via BaseModel
-* @property {zygotine.M.BetweenWorkerModelParameters} specificParameters  - les paramÃ¨tres propres Ã  l'exÃ©cution du modÃ¨le, hÃ©ritÃ©s de BaseModel
+* @property {string} className - le nom de la classe, hérité de BaseModel
+* @property {boolean} hasError - vrai si une erreur a été détecté, sinon faux, hérité de LoggingError via BaseModel
+* @property {zygotine.M.McmcParameters} mcmcParameters = les paramètres MCMC, hérités de BaseModel
+* @property {zygotine.M.MeasureList} measureList - la liste de mesures utilisée, héritée de BaseModel
+* @property {zygotine.M.Messages} messages - une liste de messages d'erreurs, de messages d'information ou de mises en garde, héritée de LoggingError via BaseModel
+* @property {zygotine.M.BetweenWorkerModelParameters} specificParameters  - les paramètres propres à l'exécution du modèle, hérités de BaseModel
 */
 zygotine.M.BetweenWorkerModel =
     function (
@@ -600,10 +600,10 @@ zygotine.M.BetweenWorkerModel =
     };
 
 zygotine.M.BetweenWorkerModel.prototype = Object.create(zygotine.M.BaseModel.prototype);
-/* modif fÃ©vrier 2020. */
+/* modif février 2020. */
 zygotine.M.BetweenWorkerModel.prototype.betaMin = 1.0E-100;
 zygotine.M.BetweenWorkerModel.prototype.paramMissing = "BetweenWorkerModel constructor: the following parameters are required:  measureList, specificParameters, mcmcParameters.";
-/* modif fÃ©vrier 2020. mÃ©thode calcSigma : nouvelle version plus bas
+/* modif février 2020. méthode calcSigma : nouvelle version plus bas
 zygotine.M.BetweenWorkerModel.prototype.calcSigma = function (n, sigmaRange, u) {
     if (typeof u === 'undefined') {
         u = zygotine.S.uniform.sample(1, 0, 1);
@@ -617,7 +617,7 @@ zygotine.M.BetweenWorkerModel.prototype.calcSigma = function (n, sigmaRange, u) 
 };
 */
 
-// modif fÃ©vrier 2020. nouvelle version de la mÃ©thode.
+// modif février 2020. nouvelle version de la méthode.
 zygotine.M.BetweenWorkerModel.prototype.calcSigma = function (n, sigmaRange, u) {
     if (typeof u === 'undefined') {
         u = zygotine.S.uniform.sample(1, 0, 1);
@@ -636,7 +636,7 @@ zygotine.M.BetweenWorkerModel.prototype.calcSigma = function (n, sigmaRange, u) 
 
 zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly) {
     var result = new zygotine.M.BetweenWorkerModelResult(this);
-    this.validateParameters__(result); // MÃ©thode de BaseModel
+    this.validateParameters__(result); // Méthode de BaseModel
     if (validationOnly) {
         result.addInfo("Parameters validation performed.");
     }
@@ -646,8 +646,8 @@ zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly
     }
 
 
-    // L'objectif n'Ã©tait pas que de valider les paramÃ¨tres.
-    // De plus les paramÃ¨tres sont valides.
+    // L'objectif n'était pas que de valider les paramètres.
+    // De plus les paramètres sont valides.
     // On poursuit donc avec le calcul des chaines.
 
     result.prngSeed = prngSeed;
@@ -672,7 +672,7 @@ zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly
     result.workerIds = workerDigest.workerIds;
 
     //On initialise les chainesm, burnin et sample
-    result.workerChainLabelPrefixes = workerDigest.workerIds.map(function (w) { return "mu_" + w; }); // workerDigest.workerIds est ordonnÃ© alphabÃ©tiquement
+    result.workerChainLabelPrefixes = workerDigest.workerIds.map(function (w) { return "mu_" + w; }); // workerDigest.workerIds est ordonné alphabétiquement
     var chainLabelPrefixes = ["muOverall", "sigmaWithin", "sigmaBetween"].concat(result.workerChainLabelPrefixes);
     result.initChains(chainLabelPrefixes, mcmc.monitorBurnin ? mcmc.nBurnin : 0, nIter);
     result.workers = { ids: workerDigest.workerIds.slice(0), invertedIds: Object.assign({}, workerDigest.workerIdsInverted) };
@@ -685,9 +685,9 @@ zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly
         sigmaWithin = tmpObj.sigmaWithin,
         sigmaBetween;
     // Suite a une demande, 
-    // on utilise pour sigmaWithin et muOverall, plutÃ´t que le rÃ©sultat d'un calcul dans workerDigest, 
-    // les valeurs de initMuOverall et initSigmaWithin incluses dans les paramÃ¨tres(specificParameters).
-    // Les paramÃ¨tres initMuOverall et initSigmaWithin peuvent Ãªtre ajustÃ©es par l'usager a travers le UI.
+    // on utilise pour sigmaWithin et muOverall, plutôt que le résultat d'un calcul dans workerDigest, 
+    // les valeurs de initMuOverall et initSigmaWithin incluses dans les paramètres(specificParameters).
+    // Les paramètres initMuOverall et initSigmaWithin peuvent être ajustées par l'usager a travers le UI.
     sigmaWithin = this.specificParameters.initSigmaWithin;
     muOverall = this.specificParameters.initMuOverall;
 
@@ -715,8 +715,8 @@ zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly
     
     workerDigest.updateMuValues(muOverall, muWorker);
     // Averages contient une moyenne d'ensemble des mesures (avg) et un tableau de moyennes par travailleur (workerAvg).
-    // En autant qu'il y ait des donnÃ©es censurÃ©es, on mettra Ã  jour ces infos Ã  chaque itÃ©ration
-    // sinon les valeurs calculÃ©es ci-bas demeureront inchangÃ©es.
+    // En autant qu'il y ait des données censurées, on mettra à jour ces infos à chaque itération
+    // sinon les valeurs calculées ci-bas demeureront inchangées.
     var
         averages = workerDigest.getAverages();
 
@@ -724,7 +724,7 @@ zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly
     var genY = new zygotine.O.YGen(sp.logN);
 
 
-    // Rapplelons que logSigmaWithinSd et logSigmaBetweenSd ne seront utilisÃ©s que si uupOnSds est faux!
+    // Rapplelons que logSigmaWithinSd et logSigmaBetweenSd ne seront utilisés que si uupOnSds est faux!
     var
         logSigmaWithinSd = NaN,
         logSigmaBetweenSd = NaN;
@@ -740,12 +740,12 @@ zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly
         nIterations = nBurnin + (nIter * nThin),
         savedIter = 0;
 
-    // 2 variables qui ne seront utilisÃ©es ssi uupOnSds est vrai, autremenent elles demeureront de type undefined.
+    // 2 variables qui ne seront utilisées ssi uupOnSds est vrai, autremenent elles demeureront de type undefined.
     var tauWithinRange, tauBetweenRange;
 
     if (uupOnSds) {
         tauWithinRange = [1.0 / (sp.sigmaWithinRange[1] * sp.sigmaWithinRange[1]), 1.0 / (sp.sigmaWithinRange[0] * sp.sigmaWithinRange[0])];
-        tauBetweenRange = [1.0 / (sp.sigmaBetweenRange[1] * sp.sigmaBetweenRange[1]), 1.0 / (sp.sigmaBetweenRange[0] * sp.sigmaBetweenRange[0])]; // il se peut que  sp.sigmaWihtinRange soit 0, alors la borne supÃ©rieure sera Infinity.
+        tauBetweenRange = [1.0 / (sp.sigmaBetweenRange[1] * sp.sigmaBetweenRange[1]), 1.0 / (sp.sigmaBetweenRange[0] * sp.sigmaBetweenRange[0])]; // il se peut que  sp.sigmaWihtinRange soit 0, alors la borne supérieure sera Infinity.
     }
 
     var // des doubles
@@ -763,7 +763,7 @@ zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly
 
         if (data.anyCensored) {
             workerDigest.generateValues(muOverall, muWorker, sigmaWithin, data);
-            //On prend les moyennes qui varient en compte les valeurs gÃ©nÃ©rÃ©es associÃ©es aux mesures censurÃ©es
+            //On prend les moyennes qui varient en compte les valeurs générées associées aux mesures censurées
             averages = workerDigest.getAverages();
         }
 
@@ -777,8 +777,8 @@ zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly
                 sigmaWithin = this.calcSigma(data.n, sp.sigmaWithinRange, u);
             }
             else {
-                let tau = zygotine.O.rGammaTruncated((data.n - 1.0) / 2.0, beta, tauWithinRange); // modif fÃ©vrier 2020 : on a remplacÃ© "(data.n / 2) - 1" "(data.n - 1.0) / 2.0"
-                //let tau = zygotine.O.rGammaTruncated((data.n / 2.0) - 1.0, beta, tauWithinRange); // modif fÃ©vrier 2020: mettre en commentaire
+                let tau = zygotine.O.rGammaTruncated((data.n - 1.0) / 2.0, beta, tauWithinRange); // modif février 2020 : on a remplacé "(data.n / 2) - 1" "(data.n - 1.0) / 2.0"
+                //let tau = zygotine.O.rGammaTruncated((data.n / 2.0) - 1.0, beta, tauWithinRange); // modif février 2020: mettre en commentaire
                 sigmaWithin = 1.0 / Math.sqrt(tau);
             }
         } else {
@@ -793,8 +793,8 @@ zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly
                 sigmaBetween = this.calcSigma(workerDigest.nWorkers, sp.sigmaBetweenRange, u);
             }
             else {
-                let tau = zygotine.O.rGammaTruncated((workerDigest.nWorkers - 1.0) / 2.0, beta, tauBetweenRange); // modif fÃ©vrier 2020 : on a remplacÃ© "(data.nWorkers / 2) - 1" "(data.nWorkers - 1.0) / 2.0"
-                //let tau = zygotine.O.rGammaTruncated((workerDigest.nWorkers / 2.0) - 1.0, beta, tauBetweenRange) // modif fÃ©vrier 2020: mettre en commentaire
+                let tau = zygotine.O.rGammaTruncated((workerDigest.nWorkers - 1.0) / 2.0, beta, tauBetweenRange); // modif février 2020 : on a remplacé "(data.nWorkers / 2) - 1" "(data.nWorkers - 1.0) / 2.0"
+                //let tau = zygotine.O.rGammaTruncated((workerDigest.nWorkers / 2.0) - 1.0, beta, tauBetweenRange) // modif février 2020: mettre en commentaire
                 sigmaBetween = 1.0 / Math.sqrt(tau);
             }
         } else {
@@ -843,25 +843,25 @@ zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly
 /***** BetweenWorkerModelParameters *******/
 
 /**
-* ReprÃ©sente les paramÃ¨tres de dÃ©part du modÃ¨le BetweenWorkerModel
+* Représente les paramètres de départ du modèle BetweenWorkerModel
 * @constructor
-* @property {boolean} logN - un boolÃ©en, vrai pour la loi log-normale et faux pour la loi normale
+* @property {boolean} logN - un booléen, vrai pour la loi log-normale et faux pour la loi normale
 * @property {number} logSigmaBetweenMu - un nombre, pertinent ssi uupOnSds est faux
 * @property {number} logSigmaBetweenPrec - un nombre, pertinent ssi uupOnSds est faux
 * @property {number} logSigmaWithinMu - un nombre, pertinent ssi uupOnSds est faux
 * @property {number} logSigmaWithinPrec - un nombre, pertinent ssi uupOnSds est faux
-* @property {number} muOverallLower - paramÃ¨tre commun au 2 types de priors possibles (uupOnSds)
-* @property {number} muOverallUpper - paramÃ¨tre commun au 2 types de priors possibles (uupOnSds)
+* @property {number} muOverallLower - paramètre commun au 2 types de priors possibles (uupOnSds)
+* @property {number} muOverallUpper - paramètre commun au 2 types de priors possibles (uupOnSds)
 * @property {number[]} sigmaBetweenRange - un interval, pertinent ssi uupOnSds est vrai
 * @property {number[]} sigmaWithinRange - un interval, pertinent ssi uupOnSds est vrai
-* @property {boolean} uupOnSds -  un boolÃ©en, vrai si l'on utilise une prior uniforme, faux sinon ...
+* @property {boolean} uupOnSds -  un booléen, vrai si l'on utilise une prior uniforme, faux sinon ...
 */
 
 
 /***** Worker ******************************/
 
 zygotine.M.Worker = function (id) {
-    this._mean = NaN; // champ privÃ©, facilite le calcul de mu (dans getInits du WorkerDigest), sera mis Ã  NaN lorsque devenu inutile.
+    this._mean = NaN; // champ privé, facilite le calcul de mu (dans getInits du WorkerDigest), sera mis à NaN lorsque devenu inutile.
     this.mu = NaN;
 };
 
@@ -874,21 +874,21 @@ zygotine.M.Worker = function (id) {
 * @constructor
 * @param {zygotine.M.Measure[]} measureArray - un tableau de mesures qui sont dans l'ordre original ...
 *
-* @property {string} className - le nom de la classe, hÃ©ritÃ© de BaseModel
-* @property {boolean} hasError - vrai si une erreur a Ã©tÃ© dÃ©tectÃ©, sinon faux, hÃ©ritÃ© de LoggingError via BaseModel
-* @property {zygotine.M.McmcParameters} mcmcParameters = les paramÃ¨tres MCMC, hÃ©ritÃ©s de BaseModel
-* @property {zygotine.M.MeasureList} measureList - la liste de mesures utilisÃ©e, hÃ©ritÃ©e de BaseModel
-* @property {zygotine.M.Messages} messages - une liste de messages d'erreurs, de messages d'information ou de mises en garde, hÃ©ritÃ©e de LoggingError via BaseModel
+* @property {string} className - le nom de la classe, hérité de BaseModel
+* @property {boolean} hasError - vrai si une erreur a été détecté, sinon faux, hérité de LoggingError via BaseModel
+* @property {zygotine.M.McmcParameters} mcmcParameters = les paramètres MCMC, hérités de BaseModel
+* @property {zygotine.M.MeasureList} measureList - la liste de mesures utilisée, héritée de BaseModel
+* @property {zygotine.M.Messages} messages - une liste de messages d'erreurs, de messages d'information ou de mises en garde, héritée de LoggingError via BaseModel
 * @property {number} nWorkers - le nombre de travailleurs
-* @property {zygotine.M.BetweenWorkerModelParameters} specificParameters  - les paramÃ¨tres propres Ã  l'exÃ©cution du modÃ¨le, hÃ©ritÃ©s de BaseModel
+* @property {zygotine.M.BetweenWorkerModelParameters} specificParameters  - les paramètres propres à l'exécution du modèle, hérités de BaseModel
 */
 zygotine.M.WorkerDigest = function (measureArray) {
 
-    this._measureArray = []; // selon l'ordre de prÃ©sentation, ie celui de la chaine de caractÃ¨re ayant servi Ã  dÃ©finir la MeasureList, ordre que prÃ©serve measureArray ...
+    this._measureArray = []; // selon l'ordre de présentation, ie celui de la chaine de caractère ayant servi à définir la MeasureList, ordre que préserve measureArray ...
     this._measureByType = { uncensored: [], greaterThan: [], lessThan: [], interval: [] };
     this._measureByWorker = [];
     //    this.workerInfo = {};
-    this._measureOrderedAsR = []; // l'ordre de R, ie "non-censurÃ©" suivi de  ">" suivi de  "<" suivi de [ , ]! Dans chaque groupe l'ordre est donnÃ© par celui de la MeasureList
+    this._measureOrderedAsR = []; // l'ordre de R, ie "non-censuré" suivi de  ">" suivi de  "<" suivi de [ , ]! Dans chaque groupe l'ordre est donné par celui de la MeasureList
     var m;
     var o;
 
@@ -896,14 +896,14 @@ zygotine.M.WorkerDigest = function (measureArray) {
         m = measureArray[i];
         extM = new zygotine.M.ExtendedMeasure(m);
 
-        this._measureArray.push(extM); // l'ordre est celui du paramÃ¨tre measureArray, donc l'ordre original des mesures.
-        this._measureByType[extM.type].push(extM); // pour un type donnÃ©, l'ordre est celui du parametre measureArray.
+        this._measureArray.push(extM); // l'ordre est celui du paramètre measureArray, donc l'ordre original des mesures.
+        this._measureByType[extM.type].push(extM); // pour un type donné, l'ordre est celui du parametre measureArray.
         this._measureByWorker[extM.workerId] = this._measureByWorker[extM.workerId] || [];
         this._measureByWorker[extM.workerId].push(extM); // pour un travailleur, les mesures sont dans l'ordre de measureArray
     }
 
-    this.workerIds = Object.keys(this._measureByWorker).sort(); // pour un travailleur, les mesures sont dans l'ordre de measureArray).sort(); // le tri est alphabÃ©tique.
-    this.measureCountByWorker = this.workerIds.map(function (id) { return this._measureByWorker[id].length; }, this); // l'ordre sera celui des id triÃ©s alphabÃ©tiquement
+    this.workerIds = Object.keys(this._measureByWorker).sort(); // pour un travailleur, les mesures sont dans l'ordre de measureArray).sort(); // le tri est alphabétique.
+    this.measureCountByWorker = this.workerIds.map(function (id) { return this._measureByWorker[id].length; }, this); // l'ordre sera celui des id triés alphabétiquement
 
     //this.measureCountByWorker = [];
     //for (let i = 0; i < this.workerIds.length; i ++) {
@@ -926,7 +926,7 @@ zygotine.M.WorkerDigest.prototype = {
 
     updateMuValues: function (muOverall, muWorker) {
         this.muOverall = muOverall;
-        this.muWorker = muWorker.slice(0); // on crÃ©e une copie du tableau.
+        this.muWorker = muWorker.slice(0); // on crée une copie du tableau.
     },
 
     getAverages: function () {
@@ -935,7 +935,7 @@ zygotine.M.WorkerDigest.prototype = {
         var wAverages = [];
         for (let i = 0; i < this.workerIds.length; i++) {
             let workerId = this.workerIds[i]; // id d'un travailleur
-            let nMeasures = this._measureByWorker[workerId].length; // nombre de mesures associÃ©es Ã  un travailleur (workerId)
+            let nMeasures = this._measureByWorker[workerId].length; // nombre de mesures associées à un travailleur (workerId)
             let tmpSum = zU.sum(this._measureByWorker[workerId].map(function (o) { return o.generatedValue; })); // somme des mesures pour le travailleur
             wAverages.push(tmpSum / nMeasures);
             globalSum += tmpSum;
@@ -950,7 +950,7 @@ zygotine.M.WorkerDigest.prototype = {
         var wIds = this.workerIds;
         var wId;
         var sum = 0;
-        var workerInfo = []; // une entrÃ©e pour chaque travailleur
+        var workerInfo = []; // une entrée pour chaque travailleur
         for (let i = 0; i < wIds.length; i++) {
             wId = wIds[i];
             workerInfo[wId] = new zygotine.M.Worker();
@@ -1067,15 +1067,29 @@ zygotine.M.WorkerDigest.prototype = {
             function (m, i) { return m.generatedValue - muWorker[this.workerIdsInverted[m.workerId]] - muOverall; },
             this);
         var beta = zygotine.U.sumSqr(residuals) / 2.0;
-        // le programme appelant n'a pas besoin de residuals, mais fournit un moyen de se comparer Ã  R.
+        // le programme appelant n'a pas besoin de residuals, mais fournit un moyen de se comparer à R.
         return { residuals: residuals, beta: beta };
     }
 };
 
 /*******************************************/
 
-zygotine.M.SEGRiskbandModelParameters = function (logN, oel) {
-  zygotine.M.ModelParameters.call(this, logN, oel)
+/***** SEGRiskbandModelParameters *******/
+
+/**
+* Represents parameters for the SEGRiskbandModel
+* @constructor
+* @param {boolean} logN - true for lognormal distribution, false for normal distribution
+*
+* @property {number} muLower - lower bound for mu
+* @property {number} muUpper - upper bound for mu
+* @property {number} logSigmaMu 
+* @property {number} logSigmaPrec
+* @property {number} initMu
+* @property {number} initSigma
+*/
+zygotine.M.SEGRiskbandModelParameters = function (logN) {
+  zygotine.M.ModelParameters.call(this, logN)
   this.muLower = -3
   this.muUpper = 6.2
   this.gsdLower = 1.05
@@ -1100,9 +1114,9 @@ zygotine.M.SEGRiskbandModel.prototype = Object.create(zygotine.M.BaseModel.proto
 zygotine.M.SEGRiskbandModel.prototype.paramMissing = "SEGRiskbandModel model constructor: the following parameters are required:  measureList, specificParameters, mcmcParameters."
 zygotine.M.SEGRiskbandModel.prototype.MEAny = false
 
-zygotine.M.SEGInformedVarModel.prototype.run = function (prngSeed, validationOnly) {
-  var result = new zygotine.M.SEGInformedVarModelResult(this)
-  this.validateParameters__(result); // MÃ©thode de BaseModel
+zygotine.M.SEGRiskbandModel.prototype.run = function (prngSeed, validationOnly) {
+  var result = new zygotine.M.SEGRiskbandModelResult(this)
+  this.validateParameters__(result); // Méthode de BaseModel
 
   if (validationOnly) {
       result.addInfo("Parameters validation performed.")
@@ -1124,10 +1138,11 @@ zygotine.M.SEGInformedVarModel.prototype.run = function (prngSeed, validationOnl
 
   result.initChains(["mu", "sd"], mcmc.monitorBurnin ? mcmc.nBurnin : 0, nIter)
 
-  var
-    burninMu = result.chains.muBurnin.data,
-    burninSd = result.chains.sdBurnin.data,
-    sampleMu = result.chains.muSample.data,
-    sampleSd = result.chains.sdSample.data
-
+  let rbres = run_Riskband()
+  result.chains.muBurnin.data = rbres.burnin.mu
+  result.chains.sdBurnin.data = rbres.burnin.sigma
+  result.chains.muSample.data = rbres.sample.mu
+  result.chains.sdSample.data = rbres.sample.sigma
+  
+  return result
 }

@@ -2,7 +2,7 @@
 // Html-related functions 
 //
 // Version 0.1 (Mar 2021)
-// Author: Patrick B�lisle
+// Author: Patrick B?lisle
 
 // Requires: output.js
 
@@ -146,10 +146,7 @@ function regionProbsChange(region_probs_option)
 
 function WorkComplete(sample)
 {
-  let model = new zygotine.SEG.Model()
-  zygotine.SEG.lastModel = model
-  model.showResults(sample.mu, sample.sigma)
-  /*var html = "<br><br>MCMC results:<br><textarea id='RCode' rows=10 cols=40></textarea>";
+  var html = "<br><br>MCMC results:<br><textarea id='RCode' rows=10 cols=40></textarea>";
   html += "<br><input type='button' id='CopyRCodeWithResults' value='Copy code to clipboard' onClick='CopyRCodeWithMCMCResults()'>";
   document.getElementById("RCodeWithResults").innerHTML = html;
   
@@ -157,5 +154,5 @@ function WorkComplete(sample)
   var RCode_sigma = "sigma = c(" + sample.sigma.commasep() + ")";
   var RCode = RCode_mu + ",\n" + RCode_sigma + ")\n";
   
-  document.getElementById("RCode").value = RCode; */
+  document.getElementById("RCode").value = RCode;
 } // end of WorkComplete

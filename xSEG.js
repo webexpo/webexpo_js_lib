@@ -11,21 +11,15 @@ zygotine.SEG.ready = function () {
         zygotine.SEG.reset();
     });
 
-    zygotine.SEG.disableMethodDiv()
-    
     $("#calcBtn").click(function () {
-      if ( $('[name=method]:checked').val() == 'classic' ) {
-        console.log(performance.now(), 'calc');
-        zygotine.SEG.hideNumericalResults();
-        zygotine.X.showBePatient();
-        window.setTimeout(zygotine.SEG.runModel, 20);
-      } else {
-        run_Riskband()
-      }
+      console.log(performance.now(), 'calc')
+      zygotine.SEG.hideNumericalResults()
+      zygotine.X.showBePatient()
+      window.setTimeout(zygotine.SEG.runModel, 20)
     });
 
     (function () {
-        //merci Ã  'Useless Code'
+        //merci à 'Useless Code'
         //https://stackoverflow.com/questions/21012580/is-it-possible-to-write-data-to-file-using-only-javascript
         var textFile = null,
             makeTextFile = function (text) {
@@ -76,8 +70,8 @@ zygotine.SEG.ready = function () {
             });
         }, false);
         
-        dnldMuTraceplot.addEventListener('click', function() { downloadTraceplot({name: 'mu', symbol: 'Î¼'}) }, false)
-        dnldSigmaTraceplot.addEventListener('click', function() { downloadTraceplot({name: 'sd', symbol: 'Ïƒ'}) }, false)
+        dnldMuTraceplot.addEventListener('click', function() { downloadTraceplot({name: 'mu', symbol: '?'}) }, false)
+        dnldSigmaTraceplot.addEventListener('click', function() { downloadTraceplot({name: 'sd', symbol: '?'}) }, false)
     })();
     //$('#select_Chains').change(function () { zygotine.SEG.showChain($('#select_Chains').val()); });
 };
@@ -91,7 +85,7 @@ zygotine.SEG.Model = function () {
     this.numericalResult = null;
     var entries = zygotine.SEG.dataEntries;
     this.logN = entries.dstrn.currentValue === 'logN';
-    this.modelType = entries["sigmaPrior"].currentValue === 'expostats' ? 'inf' : 'unInf';
+    this.modelType = entries.method.currentValue == 'classic' ? (entries["sigmaPrior"].currentValue === 'expostats' ? 'inf' : 'unInf') : 'riskband';
     this.oel = Number(entries.oel.currentValue);
     this.percOfInterest = Number(entries.percOfInterest.currentValue);
     this.fracThreshold = Number(entries.fracThreshold.currentValue);
@@ -128,7 +122,7 @@ zygotine.SEG.Model.prototype.validate = function () {
 
 zygotine.SEG.Model.prototype.doCalculation = function () {
     if (this.hasError) {
-        //alert('Certaines infos sont incorrectes ou manquantes. Les calculs ne peuvent Ãªtre effectuÃ©s.');
+        //alert('Certaines infos sont incorrectes ou manquantes. Les calculs ne peuvent être effectués.');
         this.result = null;
     } else {
         var entries = zygotine.SEG.dataEntries;
@@ -142,6 +136,7 @@ zygotine.SEG.Model.prototype.doCalculation = function () {
         var muLower = Number(entries.muLower.currentValue);
         var muUpper = Number(entries.muUpper.currentValue);
         var oel = Number(entries.oel.currentValue);
+        
         if (this.modelType === 'inf') {
             let logSigmaMu = Number(entries.logSigmaMu.currentValue);
             let logSigmaPrec = Number(entries.logSigmaPrec.currentValue);
@@ -154,11 +149,15 @@ zygotine.SEG.Model.prototype.doCalculation = function () {
             }
 
             mdl = new zygotine.M.SEGInformedVarModel(ml, modelParameters, mcmc, pds);
-        } else {
+        } else
+        if ( this.modelType === 'unInf' ) {
             let sdRangeInf = Number(entries.sdRangeInf.currentValue);
             let sdRangeSup = Number(entries.sdRangeSup.currentValue);
             let modelParameters = zygotine.SEG.createSEGUninformativeModelParameters(this.logN, oel, initMu, initSigma, muLower, muUpper, sdRangeInf, sdRangeSup);
-            mdl = new zygotine.M.SEGUninformativeModel(ml, modelParameters, mcmc); // modif fÃ©vrier 2020: "SEGInformedVarModel" remplacÃ© par "SEGUninformativeModel"
+            mdl = new zygotine.M.SEGUninformativeModel(ml, modelParameters, mcmc); // modif février 2020: "SEGInformedVarModel" remplacé par "SEGUninformativeModel"
+        } else {
+          let modelParameters = zygotine.SEG.createSEGRiskbandModelParameters(this.logN)
+          mdl = new zygotine.M.SEGRiskbandModel(ml, modelParameters, mcmc)
         }
 
         let t0 = performance.now();
@@ -287,7 +286,7 @@ zygotine.SEG.createSEGInformedVarModelParameters = function (logN, oel, initMu, 
 };
 
 zygotine.SEG.createSEGUninformativeModelParameters = function (logN, oel, initMu, initSigma, muLower, muUpper, sdRangeInf, sdRangeSup) {
-    var params = new zygotine.M.SEGUninformativeModelParameters(logN, oel); // modif fÃ©vrier 2020: "SEGInformedVarModelParameters" remplacÃ© par "SEGUninformativeModelParameters"
+    var params = new zygotine.M.SEGUninformativeModelParameters(logN, oel); // modif février 2020: "SEGInformedVarModelParameters" remplacé par "SEGUninformativeModelParameters"
     params.initMu = initMu;
     params.initSigma = initSigma;
     params.muLower = muLower;
@@ -295,6 +294,11 @@ zygotine.SEG.createSEGUninformativeModelParameters = function (logN, oel, initMu
     params.sdRange = [sdRangeInf, sdRangeSup];
     return params;
 };
+
+zygotine.SEG.createSEGRiskbandModelParameters = function (logN) {
+  var params = new zygotine.M.SEGRiskbandModelParameters(logN)
+  return params
+}
 
 zygotine.SEG.defaultEntryValues = (function () {
 
@@ -350,7 +354,7 @@ zygotine.SEG.setDataEntries = function () {
     var entry;
     var changeFn;
 
-    entries.obsValues = new valueBased('obsValues', '', "Requis. Voir la documentation quant Ã  la faÃ§on de prÃ©senter les observations.");
+    entries.obsValues = new valueBased('obsValues', '', "Requis. Voir la documentation quant à la façon de présenter les observations.");
     entries.obsValues.validate = function () {
         var ml;
         var fmtMeasureListMessages = function () {
@@ -403,27 +407,27 @@ zygotine.SEG.setDataEntries = function () {
     //mcmc
     entries.nIter = new valueBased('nIter', defaults.nIter.logN.inform, "Requis. Un nombre entier compris entre 500 et  500000", integer, 500, 500000);
     entries.nBurnin = new valueBased('nBurnin', defaults.nBurnin.logN.inform, "Requis. Un nombre entier compris entre 0 et  50000", integer, 0, 15000);
-    entries.initMu = new valueBased("initMu", '', "Requis. Un nombre rÃ©el.", float);
+    entries.initMu = new valueBased("initMu", '', "Requis. Un nombre réel.", float);
 
     entries.initSigma = new valueBased("initSigma", '', float);
-    //paramÃ¨tres pour l'interprÃ©tation des donnÃ©es
-    entries.oel = new valueBased("oel", '', "Requis. Un nombre rÃ©el correspondant Ã  la valeur limite d'exposition.", float);
+    //paramètres pour l'interprétation des données
+    entries.oel = new valueBased("oel", '', "Requis. Un nombre réel correspondant à la valeur limite d'exposition.", float);
     entries.confidenceLevelForCredibileInterval = new valueBased("confidenceLevelForCredibileInterval", 90, "Requis. Un entier compris entre 1 et 99.", integer, 1, 99);
     entries.percOfInterest = new valueBased("percOfInterest", 95, "Requis. Un entier compris entre 1 et 99.", integer, 1, 99);
     entries.fracThreshold = new valueBased("fracThreshold", 5, "Requis. Un entier compris entre 1 et 99.", integer, 1, 99);
 
     //prior sur mu
-    entries.muLower = new valueBased("muLower", '', 'Requis. Un nombre rÃ©el Ã©tablissant un minimum pour la prior de mu.', float);
-    entries.muUpper = new valueBased("muUpper", '', 'Requis. Un nombre rÃ©el Ã©tablissant un maximum pour la prior de mu.', float);
+    entries.muLower = new valueBased("muLower", '', 'Requis. Un nombre réel établissant un minimum pour la prior de mu.', float);
+    entries.muUpper = new valueBased("muUpper", '', 'Requis. Un nombre réel établissant un maximum pour la prior de mu.', float);
     // sigmaPrior : uniform vs expostats
-    entries.logSigmaMu = new valueBased("logSigmaMu", '', "Nombre rÃ©el requis lorsque la prior pour sigma est 'expostats'. Donne la valeur de logSigmaMu.", float);
-    entries.logSigmaPrec = new valueBased("logSigmaPrec", '', "Nombre rÃ©el requis lorsque la prior pour sigma est 'expostats'. Donne la valeur de logSigmaPrec.", float);
+    entries.logSigmaMu = new valueBased("logSigmaMu", '', "Nombre réel requis lorsque la prior pour sigma est 'expostats'. Donne la valeur de logSigmaMu.", float);
+    entries.logSigmaPrec = new valueBased("logSigmaPrec", '', "Nombre réel requis lorsque la prior pour sigma est 'expostats'. Donne la valeur de logSigmaPrec.", float);
     entries.sdRangeInf = new valueBased("sdRangeInf", '', float);
     entries.sdRangeSup = new valueBased("sdRangeSup", '', float);
     //past data pour expostats
-    entries.pdMean = new valueBased("pdMean", '', "Nombre rÃ©el requis lorsque la prior pour sigma est 'expostats' et que des donnÃ©es externes sont prises en compte.", float);
-    entries.pdSd = new valueBased("pdSd", '', "Nombre rÃ©el positif requis lorsque la prior pour sigma est 'expostats' et que des donnÃ©es externes sont prises en compte.", float, Number.MIN_VALUE, Number.MAX_VALUE);
-    entries.pdN = new valueBased("pdN", '', "Nombre entier (>1) requis lorsque la prior pour sigma est 'expostats' et que des donnÃ©es externes sont prises en compte.", integer, 2, Number.MAX_SAFE_INTEGER);
+    entries.pdMean = new valueBased("pdMean", '', "Nombre réel requis lorsque la prior pour sigma est 'expostats' et que des données externes sont prises en compte.", float);
+    entries.pdSd = new valueBased("pdSd", '', "Nombre réel positif requis lorsque la prior pour sigma est 'expostats' et que des données externes sont prises en compte.", float, Number.MIN_VALUE, Number.MAX_VALUE);
+    entries.pdN = new valueBased("pdN", '', "Nombre entier (>1) requis lorsque la prior pour sigma est 'expostats' et que des données externes sont prises en compte.", integer, 2, Number.MAX_SAFE_INTEGER);
     //radio
 
     zygotine.X.setDataEntries()
@@ -478,7 +482,18 @@ zygotine.SEG.setDataEntries = function () {
         zygotine.SEG.setDefaultsForDistribution(entry.currentValue);
     });
 
-    zygotine.SEG.reset();
+    entries.method = new radioBased('method', 'meth-classic')
+    entries.method.element.change(function() {
+      zygotine.SEG.disableMethodDiv(this)
+      zygotine.SEG.dataEntries.method.currentValue = this.value
+    })
+    entries.method.reset()
+    
+    entries.regionsWeightingType = new radioBased('regionProbs', 'rp_equalwts')
+    entries.regionsWeightingType.element.change(regionProbsChange)
+    entries.regionsWeightingType.reset()
+    
+    zygotine.SEG.reset()
 };
 
 zygotine.SEG.getDataEntryNames = (function () {
@@ -519,7 +534,7 @@ zygotine.SEG.reset = function () {
     entries.monitorBurnin.reset();
     entries.withPastData.reset();
     // ++ monitorBurnin ++
-    //paramÃ¨tres pour l'interprÃ©tation des donnÃ©es
+    //paramètres pour l'interprétation des données
     entries.oel.reset();
     entries.confidenceLevelForCredibileInterval.reset();
     entries.percOfInterest.reset();
