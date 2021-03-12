@@ -158,7 +158,7 @@ zygotine.BW.Model.prototype.doCalculation = function () {
             let logSigmaBetweenMu = Number(entries.logSigmaBetweenMu.currentValue);
             let logSigmaBetweenPrec = Number(entries.logSigmaBetweenPrec.currentValue);
             let logSigmaWithinMu = Number(entries.logSigmaWithinMu.currentValue);
-            let logSigmaWithinPrec = Number(entries.logSigmaBetweenPrec.currentValue);
+            let logSigmaWithinPrec = Number(entries.logSigmaWithinPrec.currentValue); // correction, Feb 2021 (PB)
             modelParameters = zygotine.BW.createBWModelParametersWithExpostatsSigmaPriors(this.logN, this.oel, initMuOverall, initSigmaWithin, muOverallLower, muOverallUpper, logSigmaBetweenMu, logSigmaBetweenPrec, logSigmaWithinMu, logSigmaWithinPrec);
         } else {
             let sigmaBetweenRangeInf = Number(entries.sigmaBetweenRangeInf.currentValue); // modif février 2020 : on utilisait entries.sigmaWithinRangeInf.currentValue

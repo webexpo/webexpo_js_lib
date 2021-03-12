@@ -11,11 +11,17 @@ zygotine.SEG.ready = function () {
         zygotine.SEG.reset();
     });
 
+    zygotine.SEG.disableMethodDiv()
+    
     $("#calcBtn").click(function () {
+      if ( $('[name=method]:checked').val() == 'classic' ) {
         console.log(performance.now(), 'calc');
         zygotine.SEG.hideNumericalResults();
         zygotine.X.showBePatient();
         window.setTimeout(zygotine.SEG.runModel, 20);
+      } else {
+        run_Riskband()
+      }
     });
 
     (function () {
@@ -170,10 +176,16 @@ zygotine.SEG.Model.prototype.doCalculation = function () {
     }
 };
 
-zygotine.SEG.Model.prototype.showResults = function () {
+zygotine.SEG.Model.prototype.showResults = function (muSample = undefined, sdSample = undefined) {
 
     let t0 = performance.now();
-    let numRes = zygotine.X.getNumericalResult(this.logN, this.result.chains.muSample.data, this.result.chains.sdSample.data, this.oel, this.confidenceLevelForCredibileInterval, this.fracThreshold, this.percOfInterest);
+    if ( muSample == undefined ) {
+      muSample = this.result.chains.muSample.data
+    }
+    if ( sdSample == undefined ) {
+      sdSample = this.result.chains.sdSample.data
+    }
+    let numRes = zygotine.X.getNumericalResult(this.logN, muSample, sdSample, this.oel, this.confidenceLevelForCredibileInterval, this.fracThreshold, this.percOfInterest);
     zygotine.SEG.displayNumericalResults(numRes);
     let t1 = performance.now();
     this.elapsedTime.numericalResults = Math.round10((t1 - t0) / 1000.0, -4);
@@ -518,6 +530,10 @@ zygotine.SEG.reset = function () {
     entries.pdN.reset();
     //radio ... autres que dstrn
     entries.sigmaPrior.reset();
+    entries.prngSeed.element.val(zygotine.X.genPseudoRand32Bit())
+    $("#RCodeWithResults").html("")
+    ClearRiskbandErrorMsg()
+    
 };
 
 zygotine.SEG.setDefaultsForDistribution = function (loi) {
@@ -610,5 +626,29 @@ zygotine.SEG.tests = {
         $('#obsValues').val(a).trigger('change');
         $('#oel').val('87.0').trigger('change');
         $('#prngSeed').val('6666').trigger('change')
+    },
+    
+    ecrireLogNRiskband: function () {
+      
+      var a = "2.298|1.337|0.309|>0.231|>0.243|<3.402|<4.41|[0.212,1.477]|[0.1,2.22]"
+      a = new zygotine.M.MeasureList(a).toString('\r\n')
+      zygotine.SEG.reset()
+      $('#logN').prop('checked', true).trigger('change')
+      $('#obsValues').val(a).trigger('change');
+      $('#oel').val('0.5').trigger('change')
+      $('#prngSeed').val('7777').trigger('change')
+      $('#meth-riskband').click()
     }
+    
 };
+
+zygotine.SEG.disableMethodDiv = function(ev) {
+  $currChosen = $('.method-chosen')
+  $currChosen.removeClass('method-chosen')
+  $currChosen.find('input, select').prop('disabled', true)
+  $target = ev instanceof Event ? $(ev.target) : $('input[name="method"]:checked')
+  let chosenVal = $target.val()
+  $chosen = $(`.method-candidate[data-val="${chosenVal}"]`)
+  $chosen.addClass('method-chosen')
+  $chosen.find('input, select').prop('disabled', false)
+}

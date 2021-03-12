@@ -691,7 +691,28 @@ zygotine.M.BetweenWorkerModel.prototype.run = function (prngSeed, validationOnly
     sigmaWithin = this.specificParameters.initSigmaWithin;
     muOverall = this.specificParameters.initMuOverall;
 
+    // ---------------------------------------------------------------------
+    // On utilise maintenant les Maximum A Posteriori (MAP) Estimates
+    // comme valeurs initiales (PB, Feb 2021)
+    // (*si* l'estimation a converge)
 
+    var platinumInits = MAP_Inits(workerDigest, sp);
+
+    if (platinumInits.converged)
+    {
+      muOverall    = platinumInits.mu_overall;
+      muWorker     = platinumInits.mu_worker;
+      sigmaWithin  = platinumInits.sigma_within;
+      sigmaBetween = platinumInits.sigma_between;
+    }
+    
+    // PB on peut evidemment oter les 4 lignes ci-dessous
+    console.log("*** Inits sigmaWithin", sigmaWithin);
+    console.log("*** Inits sigmaBetween", sigmaBetween);
+    console.log("*** Inits muOverall", muOverall);
+    console.log("*** Inits muWorker", muWorker);
+    // ---------------------------------------------------------------------
+    
     workerDigest.updateMuValues(muOverall, muWorker);
     // Averages contient une moyenne d'ensemble des mesures (avg) et un tableau de moyennes par travailleur (workerAvg).
     // En autant qu'il y ait des données censurées, on mettra à jour ces infos à chaque itération
@@ -1052,3 +1073,61 @@ zygotine.M.WorkerDigest.prototype = {
 };
 
 /*******************************************/
+
+zygotine.M.SEGRiskbandModelParameters = function (logN, oel) {
+  zygotine.M.ModelParameters.call(this, logN, oel)
+  this.muLower = -3
+  this.muUpper = 6.2
+  this.gsdLower = 1.05
+  this.gsdUpper = 4
+}
+
+zygotine.M.SEGRiskbandModelParameters.prototype = Object.create(zygotine.M.ModelParameters.prototype)
+
+zygotine.M.SEGRiskbandModelResult = function (model) {
+  zygotine.M.ModelResult.call(this, model)
+}
+
+zygotine.M.SEGRiskbandModelResult.prototype = Object.create(zygotine.M.ModelResult.prototype)
+zygotine.M.SEGRiskbandModelResult.prototype.className = "SEGRiskbandModelResult"
+
+zygotine.M.SEGRiskbandModel = function (measureList, specificParameters, mcmcParameters) {
+  zygotine.M.BaseModel.call(this, measureList, specificParameters, mcmcParameters)
+  this.className = "SEGRiskbandModel"
+}
+
+zygotine.M.SEGRiskbandModel.prototype = Object.create(zygotine.M.BaseModel.prototype)
+zygotine.M.SEGRiskbandModel.prototype.paramMissing = "SEGRiskbandModel model constructor: the following parameters are required:  measureList, specificParameters, mcmcParameters."
+zygotine.M.SEGRiskbandModel.prototype.MEAny = false
+
+zygotine.M.SEGInformedVarModel.prototype.run = function (prngSeed, validationOnly) {
+  var result = new zygotine.M.SEGInformedVarModelResult(this)
+  this.validateParameters__(result); // Méthode de BaseModel
+
+  if (validationOnly) {
+      result.addInfo("Parameters validation performed.")
+  }
+
+  if (result.hasError || validationOnly) {
+    return result
+  }
+
+  result.prngSeed = prngSeed
+  zygotine.S.prng.init(result.prngSeed)
+
+  var mcmc = this.mcmcParameters;
+  var // mcmc
+    monitorBurnin = mcmc.monitorBurnin,
+    nBurnin = mcmc.nBurnin,
+    nIter = mcmc.nIter,
+    nThin = 1
+
+  result.initChains(["mu", "sd"], mcmc.monitorBurnin ? mcmc.nBurnin : 0, nIter)
+
+  var
+    burninMu = result.chains.muBurnin.data,
+    burninSd = result.chains.sdBurnin.data,
+    sampleMu = result.chains.muSample.data,
+    sampleSd = result.chains.sdSample.data
+
+}
