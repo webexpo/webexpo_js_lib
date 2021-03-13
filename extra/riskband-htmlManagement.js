@@ -87,28 +87,27 @@ function DisplayRegionProbsTable(A, region_probs_value)
 
 function ErrorMsg(error_code, A)
 {
-  var msg;
+  var msgid
+  var extraInfo = ""
   
-  if (error_code == 0)      msg = "Prior probabilities must sum to 1.";
-  else if (error_code == 1) msg = "Prior probabilities must all be non-negative.";
-  else if (error_code == 2)
-  {
-    if (A.length == 1) msg = "The cut-off value "  + A[0]         + " does";
-    else               msg = "The cut-off values " + A.join(", ") + " do";
-    
-    msg += " not cross the (mu, sigma) domain.";
+  if (error_code == 0)      msgid = "priors-must-sum-to-1"
+  else if (error_code == 1) msgid = "priors-must-be-non-neg"
+  else if (error_code == 2) {
+    msgid = "bad-cut-offs"
+    extraInfo = (A.length == 1) ? A[0] : A.join(", ")
   }
-  else if (error_code == 3) msg = "Please fill in data in the opposite text box.";
-  else if (error_code == 4) msg = "The cut-off values must be listed in ascending order.";
-  else if (error_code == 5) msg = "Cut-off values must not be duplicated.";
+  else if (error_code == 4) msgid = "cut-offs-must-ascend"
+  else if (error_code == 5) msgid = "no-repeat-cut-offs"
   
-   
+  /* 
   var btn = "<input type='button' value='Ok' onClick='ClearRiskbandErrorMsg()'>";
   
   var html = "<table style='background-color: gainsboro;' border=0><tr><td><span style='color: red; font-weight:bold;'>Error</span>&nbsp;&nbsp;" + msg + "</td><td style='text-align: right; padding-left: 20px;'>" + btn + "</td></tr></table>";
   
   document.getElementById("riskband_error_msg").innerHTML = html;
-} // end of ErrorMsg
+  */
+ return `${$.i18n(msgid)}${extraInfo}.`
+}
 
 
 function PleaseBePatient()

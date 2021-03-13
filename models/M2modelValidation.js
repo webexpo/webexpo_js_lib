@@ -190,10 +190,63 @@ zygotine.M.validateModelParameters = function (result, model) {
             result.addWarning("Pastdata parameters validation skipped!");
         }
     };
+    
+    var riskbandSpecificParamsValidator = function () {
+      var R = document.riskband_form.R.value;
+      var logNormalDistrn = $('#logN').is(':checked')
+      var A = Read_A_fromHtml(R)
+      var region_prior_prob = [];
+    
+      var prior_density = {equal_region_probs: document.getElementById("rp_equalwts").checked, 
+                           uniform:            document.getElementById("rp_unif").checked};
+
+
+      if (!A.sorted())
+      {
+        addError(ErrorMsg(4))
+      }
+      else if (A.any_duplicated_cutoff())
+      {
+        addError(ErrorMsg(5))
+      }
+
+
+      if (!prior_density.equal_region_probs && !prior_density.uniform)
+      {
+        // user-defined region probs
+
+        for (let i=0; i<R; i++)
+        {
+          let html_varname = "rpp" + i
+          let region_prior_prob_i = document.getElementById(html_varname).value
+          region_prior_prob.push(region_prior_prob_i)
+        }
+
+        region_prior_prob = region_prior_prob.map(Number)
+
+        let tot_prob = region_prior_prob.sum()
+
+        if (tot_prob != 1)
+        {
+          addError(ErrorMsg(0))                         
+        }
+
+        let any_negative_value = region_prior_prob.filter(p => p < 0).length > 0
+
+        if (any_negative_value)
+        {
+          addError(ErrorMsg(1))
+        }
+      }
+    }
 
     if (model instanceof zygotine.M.SEGInformedVarModel) {
         infVar();
+    } else
+    if (model instanceof zygotine.M.SEGRiskbandModel) {
+      riskbandSpecificParamsValidator()
     }
+      
 };
 
 
