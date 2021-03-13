@@ -540,120 +540,70 @@ run_Riskband = function()
   var R = document.riskband_form.R.value;
   var logNormalDistrn = $('#logN').is(':checked')
   
-  console.clear();
+  console.clear()
   ClearRiskbandErrorMsg();
   //PleaseBePatient();
   
+  var data = ReadData(document.riskband_form)
   
-    ////////////////////////////////////////////////////////////////////////////
-    // Read Problem Description from Html Form
-    
-    // Read data
-    
-    var data = ReadData(document.riskband_form);
-  
-    if (data.N == 0)
-    {
-      ErrorMsg(3);
-      return;                                       
-    }
-    
     // Read region cut-offs values (A) & prior probabilities
     // from calling html page
     
     var A = Read_A_fromHtml(R),
-        region_prior_prob = [];
+        region_prior_prob = []
     
     var mu_lower  = Number(document.riskband_form.mu_lower.value),
         mu_upper  = Number(document.riskband_form.mu_upper.value),
         gsd_lower = Number(document.riskband_form.gsd_lower.value),
-        gsd_upper = Number(document.riskband_form.gsd_upper.value);
+        gsd_upper = Number(document.riskband_form.gsd_upper.value)
         
     var prior_density = {equal_region_probs: document.getElementById("rp_equalwts").checked, 
-                         uniform:            document.getElementById("rp_unif").checked};
-
+                         uniform:            document.getElementById("rp_unif").checked}
        
-    if (!A.sorted())
-    {
-      ErrorMsg(4);
-      return;
-    }
-    else if (A.any_duplicated_cutoff())
-    {
-      ErrorMsg(5);
-      return;
-    }
-    
-
     if (!prior_density.equal_region_probs && !prior_density.uniform)
     {
       // user-defined region probs
       
       for (let i=0; i<R; i++)
       {
-        let html_varname = "rpp" + i;
-        let region_prior_prob_i = document.getElementById(html_varname).value;
-        region_prior_prob.push(region_prior_prob_i);
+        let html_varname = "rpp" + i
+        let region_prior_prob_i = document.getElementById(html_varname).value
+        region_prior_prob.push(region_prior_prob_i)
       }
       
-      region_prior_prob = region_prior_prob.map(Number); // convert to numeric values
-      
-      let tot_prob = region_prior_prob.sum();
-      
-      if (tot_prob != 1)
-      {
-        ErrorMsg(0);
-        return;                                       
-      }
-      
-      let any_negative_value = region_prior_prob.filter(p => p < 0).length > 0;
-      
-      if (any_negative_value)
-      {
-        ErrorMsg(1);
-        return;
-      }
+      region_prior_prob = region_prior_prob.map(Number)
     }
     
-    
-    mcmc = MCMCParms(document.riskband_form);
+    mcmc = MCMCParms(document.riskband_form)
 
-    
-    ////////////////////////////////////////////////////////////////////////////
-    
-      
-    var gm_min = Math.exp(mu_lower),
-        gm_max = Math.exp(mu_upper),
-      
-        sigma_lower = Math.log(gsd_lower),
-        sigma_upper = Math.log(gsd_upper); 
+    var sigma_lower = Math.log(gsd_lower),
+        sigma_upper = Math.log(gsd_upper)
     
 
-  const Z = 1.644854; // 95th percentile of N(0,1)
+  const Z = 1.644854 // 95th percentile of N(0,1)
   
-  const mu_range    = [mu_lower,    mu_upper];
-  const sigma_range = [sigma_lower, sigma_upper];
+  const mu_range    = [mu_lower,    mu_upper]
+  const sigma_range = [sigma_lower, sigma_upper]
 
   
   A_orig = A.slice();
   
   if (logNormalDistrn)
   {
-    A = A.map(Math.log);
-    data = TakeLog(data);
+    A = A.map(Math.log)
+    data = TakeLog(data)
   }
   
- 
-  var log_prior_dens;
+ var log_prior_dens
   
-  if (!prior_density.uniform) log_prior_dens = log_prior_density(A, Z, mu_range, sigma_range, prior_density, region_prior_prob);
+  if (!prior_density.uniform) log_prior_dens = log_prior_density(A, Z, mu_range, sigma_range, prior_density, region_prior_prob)
   // else: we do not need to calculate log_prior_dens (leave it undefined) 
   
   
   // MCMC sampling
   
-  var burnin = {mu: [], sigma: []};
-  var sample = {mu: [], sigma: []};
+  var burnin = {mu: [], sigma: []}
+  var sample = {mu: [], sigma: []}
   
 
   var sqrt_N = Math.sqrt(data.N);
