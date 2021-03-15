@@ -200,7 +200,9 @@ zygotine.M.validateModelParameters = function (result, model) {
       var prior_density = {equal_region_probs: document.getElementById("rp_equalwts").checked, 
                            uniform:            document.getElementById("rp_unif").checked};
 
-
+      if ( A.filter(isNaN).length > 0 ) {
+        addError(ErrorMsg(6))
+      }
       if (!A.sorted())
       {
         addError(ErrorMsg(4))

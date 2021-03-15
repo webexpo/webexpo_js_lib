@@ -10,7 +10,9 @@
 function change_R()
 {
   // user changes the number of regions
-  DisplayRegionProbsTable();
+  let A = undefined
+  let reg = $('[name="regionProbs"]:checked').val()
+  DisplayRegionProbsTable(A, reg)
 } // end of change_R
 
 
@@ -98,6 +100,7 @@ function ErrorMsg(error_code, A)
   }
   else if (error_code == 4) msgid = "cut-offs-must-ascend"
   else if (error_code == 5) msgid = "no-repeat-cut-offs"
+  else if (error_code == 6) msgid = "invalid-cut-offs"
   
   /* 
   var btn = "<input type='button' value='Ok' onClick='ClearRiskbandErrorMsg()'>";

@@ -384,7 +384,7 @@ zygotine.X.display1NumericalResult = (function () {
     return f;
 })();
 
-zygotine.X.concatChains = function (result, flavor, decimalSeparator) {
+zygotine.X.concatChains = function (result, flavor, chainSep = '\t', decimalSeparator) {
     var replaceDecimalPoint = (typeof decimalSeparator === 'string');
     if (replaceDecimalPoint) {
         replaceDecimalPoint = decimalSeparator[0] !== '.';
@@ -403,7 +403,7 @@ zygotine.X.concatChains = function (result, flavor, decimalSeparator) {
             oneLineData[iC] = shrKut[iC].data[iL];
         }
 
-        res[iL + 1] = oneLineData.join('\t');
+        res[iL + 1] = oneLineData.join(chainSep);
     }
 
     var rep = res.join('\r\n');

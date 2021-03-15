@@ -43,8 +43,8 @@ zygotine.SEG.ready = function () {
 
         dnldSampleChains.addEventListener('click', function () {
             var link = document.createElement('a');
-            link.setAttribute('download', zygotine.SEG.lastModel.result.prngSeed + '_sampleChains.txt');
-            link.href = makeTextFile(zygotine.X.concatChains(zygotine.SEG.lastModel.result, 'sample'));
+            link.setAttribute('download', `chaines_sample_mcmc__${zygotine.SEG.lastModel.result.prngSeed}.csv`);
+            link.href = makeTextFile(zygotine.X.concatChains(zygotine.SEG.lastModel.result, 'sample', ';'));
             document.body.appendChild(link);
 
             // wait for the link to be added to the document
@@ -58,8 +58,8 @@ zygotine.SEG.ready = function () {
 
         dnldBurninChains.addEventListener('click', function () {
             var link = document.createElement('a');
-            link.setAttribute('download', zygotine.SEG.lastModel.result.prngSeed + '_burninChains.txt');
-            link.href = makeTextFile(zygotine.X.concatChains(zygotine.SEG.lastModel.result, 'burnin'));
+            link.setAttribute('download', `chaines_burnin_mcmc__${zygotine.SEG.lastModel.result.prngSeed}.csv`);
+            link.href = makeTextFile(zygotine.X.concatChains(zygotine.SEG.lastModel.result, 'burnin', ';'));
             document.body.appendChild(link);
 
             // wait for the link to be added to the document
