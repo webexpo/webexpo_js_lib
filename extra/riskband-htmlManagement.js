@@ -62,21 +62,22 @@ function DisplayRegionProbsTable(A, region_probs_value)
   
   var new_table = "<table id='regions_table'><tr><td style='text-align: center;' data-i18n='cut-offs'></td>";
   if (user_defined_region_probs) new_table += "<td style='text-align: center;' data-i18n='cut-off-probs'></td>";
-  
+  var udProbs = false
   new_table += "</tr>";
   
   for (let i=0; i<R; i++)
   {
     if (user_defined_region_probs) 
     {
-      new_table += "<tr><td></td><td style='text-align: center;'><input style='text-align: center;' id='rpp" + i + "'  type='text'";
+      new_table += "<tr><td></td><td style='text-align: center;'><input class='ud-probs' name='udProb' style='text-align: center;' id='rpp" + i + "'  type='text'";
       if (typeof default_prob !== 'undefined') new_table += " value='" + default_prob + "'";
       new_table += "></td></tr>";
     }
     
     if (i < R-1)
     {
-      new_table += "<tr><td style='text-align: center;'><input style='text-align: center;' id='A" + i + "' type='text' value='" + A[i] + "'";
+      udProbs = true
+      new_table += "<tr><td style='text-align: center;'><input style='text-align: center;' class='cut-offs' name='cutOff' id='A" + i + "' type='text' value='" + A[i] + "'";
       new_table += "></td></tr>";
     }  
   }
@@ -85,6 +86,14 @@ function DisplayRegionProbsTable(A, region_probs_value)
   
   document.getElementById("regions_table").innerHTML = new_table; 
   $('#regions_table [data-i18n]').i18n()
+  
+  if ( zygotine.SEG.dataEntries.riskbandCutOffs != undefined ) {
+    zygotine.SEG.dataEntries.riskbandCutOffs.reset()
+  }
+  
+  if ( zygotine.SEG.dataEntries.riskbandUserDefnProbs != undefined && udProbs ) {
+    zygotine.SEG.dataEntries.riskbandUserDefnProbs.reset()
+  }
 } // end of DisplayRegionProbsTable
 
 function ErrorMsg(error_code, A)

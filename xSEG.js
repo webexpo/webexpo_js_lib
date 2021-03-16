@@ -70,10 +70,69 @@ zygotine.SEG.ready = function () {
             });
         }, false);
         
-        dnldMuTraceplot.addEventListener('click', function() { downloadTraceplot({name: 'mu', symbol: '?'}) }, false)
-        dnldSigmaTraceplot.addEventListener('click', function() { downloadTraceplot({name: 'sd', symbol: '?'}) }, false)
+        dnldMuTraceplot.addEventListener('click', function() { downloadTraceplot({name: 'mu', symbol: 'μ'}) }, false)
+        dnldSigmaTraceplot.addEventListener('click', function() { downloadTraceplot({name: 'sd', symbol: 'σ'}) }, false)
+        
+        $('#dnldSampleChainAsRBtn').on('click', function (_) {
+          var link = document.createElement('a')
+          link.setAttribute('download', `chaines_sample_mcmc__${zygotine.SEG.lastModel.result.prngSeed}.R`)
+          let muS = zygotine.SEG.lastModel.result.chains.muSample.data
+          let sdS = zygotine.SEG.lastModel.result.chains.sdSample.data
+          let trans = chain => chain.map(n => n.toString()).map(numStr => numStr.replace(/(\.[0-9]{3})([0-9]+)$/, "$1")).join(', ')
+          link.href = makeTextFile(`mcmc <- list(mu = c(${trans(muS)}), sigma = c(${trans(sdS)}))`)
+          document.body.appendChild(link)
+          window.requestAnimationFrame(function () {
+            var event = new MouseEvent('click')
+            link.dispatchEvent(event)
+            document.body.removeChild(link)
+          })
+        })
+        
+        $('#dnldBurninChainAsRBtn').on('click', function (_) {
+          var link = document.createElement('a')
+          link.setAttribute('download', `chaines_sample_mcmc__${zygotine.SEG.lastModel.result.prngSeed}.R`)
+          let muS = zygotine.SEG.lastModel.result.chains.muBurnin.data
+          let sdS = zygotine.SEG.lastModel.result.chains.sdBurnin.data
+          let trans = chain => chain.map(n => n.toString()).map(numStr => numStr.replace(/(\.[0-9]{3})([0-9]+)$/, "$1")).join(', ')
+          link.href = makeTextFile(`mcmc <- list(mu = c(${trans(muS)}), sigma = c(${trans(sdS)}))`)
+          document.body.appendChild(link)
+          window.requestAnimationFrame(function () {
+            var event = new MouseEvent('click')
+            link.dispatchEvent(event)
+            document.body.removeChild(link)
+          })
+        })
+        
+        $('#dnldRiskbandDomainPlotBtn').on('click', _ => {
+          let muS = zygotine.SEG.lastModel.result.chains.muSample.data
+          let sdS = zygotine.SEG.lastModel.result.chains.sdSample.data
+          
+          var trace1 = {
+            x: muS,
+            y: sdS,
+            mode: 'markers',
+            type: 'scatter'
+          };
+
+          var trace2 = {
+            x: [2, 3, 4, 5],
+            y: [16, 5, 11, 9],
+            mode: 'lines',
+            type: 'scatter'
+          };
+
+          var trace3 = {
+            x: [1, 2, 3, 4],
+            y: [12, 9, 15, 12],
+            mode: 'lines+markers',
+            type: 'scatter'
+          };
+
+          var data = [trace1, trace2, trace3];
+
+          Plotly.newPlot('RCodeWithResults', data);
+        })
     })();
-    //$('#select_Chains').change(function () { zygotine.SEG.showChain($('#select_Chains').val()); });
 };
 
 zygotine.SEG.lastModel = null;
@@ -106,13 +165,13 @@ zygotine.SEG.Model.prototype.className = "SEGModel";
 //    $('#values_Chains').text(this.result.chains[muOrSd].data.join('\r\n'));
 //};
 
-zygotine.SEG.Model.prototype.getChainAsString = function (chainId) {
-    return this.result.chains[chain].data.join('\r\n');
+zygotine.SEG.Model.prototype.getChainAsString = function (chainId, sep) {
+    return this.result.chains[chainId].data.join(sep)
 };
 
 zygotine.SEG.Model.prototype.validate = function () {
     var entries = zygotine.SEG.dataEntries;
-    var names = zygotine.SEG.getDataEntryNames(entries["sigmaPrior"].currentValue, entries['withPastData'].currentValue);
+    var names = zygotine.SEG.getDataEntryNames(entries["sigmaPrior"].currentValue, entries['withPastData'].currentValue, entries.method.currentValue);
     var toutes = names.map(n => entries[n]);
     var fautives = toutes.filter(e => !e.validation.ok);
     if (fautives.length !== 0) {
@@ -229,8 +288,8 @@ zygotine.SEG.runModel = function () {
 //};
 
 zygotine.SEG.hideNumericalResults = function () {
-    $('#numRes').hide();
-    $('#dnldChains').hide();
+    $('#numRes').hide()
+    $('#dnldChains').hide()
 };
 
 zygotine.SEG.showNumericalResults = function (logN) {
@@ -245,9 +304,13 @@ zygotine.SEG.showNumericalResults = function (logN) {
 
     $('#numRes').show();
     $('#dnldChains').show();
-    $('#dnldBurninChainBtn').hide();
+    $('.dnldBtn.burnin-chain').hide()
+    $('.dnldBtn.riskband-plot').hide()
     if (zygotine.SEG.dataEntries.monitorBurnin.currentValue && (parseInt(zygotine.SEG.dataEntries.nBurnin.currentValue) > 0)) {
-        $('#dnldBurninChainBtn').show();
+        $('.dnldBtn.burnin-chain').show()
+    }
+    if ( zygotine.SEG.dataEntries.method.currentValue == "riskband" ) {
+      $('.dnldBtn.riskband-plot').show()
     }
 };
 
@@ -354,7 +417,7 @@ zygotine.SEG.setDataEntries = function () {
     var entry;
     var changeFn;
 
-    entries.obsValues = new valueBased('obsValues', '', "Requis. Voir la documentation quant � la fa�on de pr�senter les observations.");
+    entries.obsValues = new valueBased('obsValues', '', "Requis. Voir la documentation quant à la fa�on de présenter les observations.");
     entries.obsValues.validate = function () {
         var ml;
         var fmtMeasureListMessages = function () {
@@ -407,27 +470,27 @@ zygotine.SEG.setDataEntries = function () {
     //mcmc
     entries.nIter = new valueBased('nIter', defaults.nIter.logN.inform, "Requis. Un nombre entier compris entre 500 et  500000", integer, 500, 500000);
     entries.nBurnin = new valueBased('nBurnin', defaults.nBurnin.logN.inform, "Requis. Un nombre entier compris entre 0 et  50000", integer, 0, 15000);
-    entries.initMu = new valueBased("initMu", '', "Requis. Un nombre r�el.", float);
+    entries.initMu = new valueBased("initMu", '', "Requis. Un nombre réel.", float);
 
     entries.initSigma = new valueBased("initSigma", '', float);
-    //param�tres pour l'interpr�tation des donn�es
-    entries.oel = new valueBased("oel", '', "Requis. Un nombre r�el correspondant � la valeur limite d'exposition.", float);
+    //param�tres pour l'interpr�tation des données
+    entries.oel = new valueBased("oel", '', "Requis. Un nombre réel correspondant à la valeur limite d'exposition.", float);
     entries.confidenceLevelForCredibileInterval = new valueBased("confidenceLevelForCredibileInterval", 90, "Requis. Un entier compris entre 1 et 99.", integer, 1, 99);
     entries.percOfInterest = new valueBased("percOfInterest", 95, "Requis. Un entier compris entre 1 et 99.", integer, 1, 99);
     entries.fracThreshold = new valueBased("fracThreshold", 5, "Requis. Un entier compris entre 1 et 99.", integer, 1, 99);
 
     //prior sur mu
-    entries.muLower = new valueBased("muLower", '', 'Requis. Un nombre r�el �tablissant un minimum pour la prior de mu.', float);
-    entries.muUpper = new valueBased("muUpper", '', 'Requis. Un nombre r�el �tablissant un maximum pour la prior de mu.', float);
+    entries.muLower = new valueBased("muLower", '', 'Requis. Un nombre réel établissant un minimum pour la prior de mu.', float);
+    entries.muUpper = new valueBased("muUpper", '', 'Requis. Un nombre réel établissant un maximum pour la prior de mu.', float);
     // sigmaPrior : uniform vs expostats
-    entries.logSigmaMu = new valueBased("logSigmaMu", '', "Nombre r�el requis lorsque la prior pour sigma est 'expostats'. Donne la valeur de logSigmaMu.", float);
-    entries.logSigmaPrec = new valueBased("logSigmaPrec", '', "Nombre r�el requis lorsque la prior pour sigma est 'expostats'. Donne la valeur de logSigmaPrec.", float);
+    entries.logSigmaMu = new valueBased("logSigmaMu", '', "Nombre réel requis lorsque la prior pour sigma est 'expostats'. Donne la valeur de logSigmaMu.", float);
+    entries.logSigmaPrec = new valueBased("logSigmaPrec", '', "Nombre réel requis lorsque la prior pour sigma est 'expostats'. Donne la valeur de logSigmaPrec.", float);
     entries.sdRangeInf = new valueBased("sdRangeInf", '', float);
     entries.sdRangeSup = new valueBased("sdRangeSup", '', float);
     //past data pour expostats
-    entries.pdMean = new valueBased("pdMean", '', "Nombre r�el requis lorsque la prior pour sigma est 'expostats' et que des donn�es externes sont prises en compte.", float);
-    entries.pdSd = new valueBased("pdSd", '', "Nombre r�el positif requis lorsque la prior pour sigma est 'expostats' et que des donn�es externes sont prises en compte.", float, Number.MIN_VALUE, Number.MAX_VALUE);
-    entries.pdN = new valueBased("pdN", '', "Nombre entier (>1) requis lorsque la prior pour sigma est 'expostats' et que des donn�es externes sont prises en compte.", integer, 2, Number.MAX_SAFE_INTEGER);
+    entries.pdMean = new valueBased("pdMean", '', "Nombre réel requis lorsque la prior pour sigma est 'expostats' et que des données externes sont prises en compte.", float);
+    entries.pdSd = new valueBased("pdSd", '', "Nombre réel positif requis lorsque la prior pour sigma est 'expostats' et que des données externes sont prises en compte.", float, Number.MIN_VALUE, Number.MAX_VALUE);
+    entries.pdN = new valueBased("pdN", '', "Nombre entier (>1) requis lorsque la prior pour sigma est 'expostats' et que des données externes sont prises en compte.", integer, 2, Number.MAX_SAFE_INTEGER);
     //radio
 
     zygotine.X.setDataEntries()
@@ -489,16 +552,27 @@ zygotine.SEG.setDataEntries = function () {
     })
     entries.method.reset()
     
+    DisplayRegionProbsTable()
+    entries.riskbandCutOffs = new zygotine.X.RiskbandFloatSetDataEntry('cut-offs', 'Des nombres réels en ordre croissant correspondant aux bornes des régions')
+    entries.riskbandUserDefnProbs = new zygotine.X.RiskbandFloatSetDataEntry('ud-probs', 'Des probabilités entre 0 et 1 en ordre croissant qui totalisent 1', 0, 1)
+    
     entries.regionsWeightingType = new radioBased('regionProbs', 'rp_equalwts')
-    entries.regionsWeightingType.element.change(function() { regionProbsChange(this) })
+    entries.regionsWeightingType.element.change(function() {
+      entries.regionsWeightingType.currentValue = this.value
+      regionProbsChange(this) 
+    })
     entries.regionsWeightingType.reset()
     
     entries.muLowerRiskband = new valueBased("mu_lower", '', 'Requis. Un nombre réel établissant un minimum pour la distrbution a priori de mu.', float)
+    entries.muLowerRiskband.element.change()
     entries.muUpperRiskband = new valueBased("mu_upper", '', 'Requis. Un nombre réel établissant un maximum pour la distrbution a priori de mu.', float)
+    entries.muUpperRiskband.element.change()
     entries.gsdLowerRiskband = new valueBased("gsd_lower", '', 'Requis. Un nombre réel établissant un minimum pour la distrbution a priori de gsd.', float)
+    entries.gsdLowerRiskband.element.change()
     entries.gsdUpperRiskband = new valueBased("gsd_upper", '', 'Requis. Un nombre réel établissant un maximum pour la distrbution a priori de gsd.', float)
-    
-  zygotine.SEG.reset()
+    entries.gsdUpperRiskband.element.change()
+        
+    zygotine.SEG.reset()
 };
 
 zygotine.SEG.getDataEntryNames = (function () {
@@ -508,18 +582,25 @@ zygotine.SEG.getDataEntryNames = (function () {
     var expostatsPrior = ['logSigmaMu', 'logSigmaPrec'];
     var pd = ['pdMean', 'pdSd', 'pdN'];
 
-    var fn = function (sigmaPrior, withPastData) {
+    var fn = function (sigmaPrior, withPastData, method = 'classic') {
         var rep = [];
 
         Array.prototype.push.apply(rep, common);
 
-        if (sigmaPrior === 'uniform') {
-            Array.prototype.push.apply(rep, unifPrior);
+        if ( method == 'classic' ) {
+          if (sigmaPrior === 'uniform') {
+              Array.prototype.push.apply(rep, unifPrior);
+          } else {
+              Array.prototype.push.apply(rep, expostatsPrior);
+              if (withPastData) {
+                  Array.prototype.push.apply(rep, pd);
+              }
+          }
         } else {
-            Array.prototype.push.apply(rep, expostatsPrior);
-            if (withPastData) {
-                Array.prototype.push.apply(rep, pd);
-            }
+          Array.prototype.push.apply(rep, ['riskbandCutOffs', 'muLowerRiskband', 'muUpperRiskband', 'gsdLowerRiskband', 'gsdUpperRiskband'])
+          if ( zygotine.SEG.dataEntries.regionsWeightingType.currentValue == 'user' ) {
+            Array.prototype.push.apply(rep, ['riskbandUserDefnProbs'])
+          }
         }
 
         return rep;
@@ -539,7 +620,7 @@ zygotine.SEG.reset = function () {
     entries.monitorBurnin.reset();
     entries.withPastData.reset();
     // ++ monitorBurnin ++
-    //param�tres pour l'interpr�tation des donn�es
+    //param�tres pour l'interpr�tation des données
     entries.oel.reset();
     entries.confidenceLevelForCredibileInterval.reset();
     entries.percOfInterest.reset();
