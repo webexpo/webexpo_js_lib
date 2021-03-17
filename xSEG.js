@@ -185,7 +185,7 @@ zygotine.SEG.ready = function () {
               })
               $('#loading').hide()
             })
-          }, 100)
+          }, 300)
         })
     })();
 };
