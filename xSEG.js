@@ -798,7 +798,8 @@ zygotine.SEG.tests = {
       $('#numregions').val(cutOffVals.length+1).change()
       $('#rp_equalwts').prop('checked', true).change()
       $('.cut-offs').each((i, el) => $(el).val(cutOffVals[i]).change())
-      $('#nIter').val(2000).change()
+      $('#nIter').val(10000).change()
+      $('#nBurnin').val(1000).change()
     }
     
 };
