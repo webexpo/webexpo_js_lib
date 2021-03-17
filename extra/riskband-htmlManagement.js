@@ -39,7 +39,7 @@ function CopyRCodeWithMCMCResults()
 
 function DisplayRegionProbsTable(A, region_probs_value)
 {  
-  var R = document.getElementById("R").value;
+  var R = document.getElementById("numregions").value;
   var user_defined_region_probs = region_probs_value == 'user';
   
   // var default_prob = 1/R;
@@ -130,7 +130,7 @@ function PleaseBePatient()
 
 function Read_A_fromHtml(R)
 {
-  var R = document.getElementById("R").value;
+  var R = document.getElementById("numregions").value;
   var A = [];
   
   for (let i=0; i<R-1; i++)

@@ -537,7 +537,7 @@ function SimulatedValues(data, mu, sigma)
 
 run_Riskband = function()
 {
-  var R = document.riskband_form.R.value;
+  var R = document.riskband_form.numregions.value;
   var logNormalDistrn = $('#logN').is(':checked')
   
   console.clear()

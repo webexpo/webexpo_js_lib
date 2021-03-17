@@ -192,7 +192,7 @@ zygotine.M.validateModelParameters = function (result, model) {
     };
     
     var riskbandSpecificParamsValidator = function () {
-      var R = document.riskband_form.R.value;
+      var R = document.riskband_form.numregions.value;
       var logNormalDistrn = $('#logN').is(':checked')
       var A = Read_A_fromHtml(R)
       var region_prior_prob = [];

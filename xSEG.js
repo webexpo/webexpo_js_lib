@@ -106,31 +106,86 @@ zygotine.SEG.ready = function () {
         $('#dnldRiskbandDomainPlotBtn').on('click', _ => {
           let muS = zygotine.SEG.lastModel.result.chains.muSample.data
           let sdS = zygotine.SEG.lastModel.result.chains.sdSample.data
+          let cutOffs = zygotine.SEG.dataEntries.riskbandCutOffs.currentValue
+          let muLower = zygotine.SEG.dataEntries.muLowerRiskband.validation.val
+          let muUpper = zygotine.SEG.dataEntries.muUpperRiskband.validation.val
+          let gsdLower = zygotine.SEG.dataEntries.gsdLowerRiskband.validation.val
+          let gsdUpper = zygotine.SEG.dataEntries.gsdUpperRiskband.validation.val
           
-          var trace1 = {
+          var layout = {
+            xaxis: {
+              title: "mu",
+              mirror: true,
+              ticks: 'outside',
+              showline: true,
+              zeroline: false
+            },
+            yaxis: {
+              title: "sigma",
+              mirror: true,
+              ticks: 'outside',
+              showline: true,
+              zeroline: false
+            },
+            showlegend: false,
+            title: $.i18n('mcmc-riskband-plot')
+          }
+          
+          var traceMcmc = {
             x: muS,
             y: sdS,
             mode: 'markers',
             type: 'scatter'
-          };
+          }
+          
+          var data = [traceMcmc]
+          
+          let sigmaLower = Math.log(gsdLower)
+          let sigmaUpper = Math.log(gsdUpper)
+          let z = jStat.normal.inv(.95, 0, 1)
+          let A = cutOffs.map(Math.log)
+          let intercepts = A.map(a => a/z)
+          layout.xaxis.range = [muLower, muUpper]
+          layout.yaxis.range = [sigmaLower, sigmaUpper]
+          
+          intercepts.forEach(intercept => {
+            let a = -1/z
+            let b = intercept
+            let factor = 1000
+            
+            let lineEq = (x) => a*x + b
+            let xs = [muLower*factor, muUpper*factor]
+            let ys = xs.map(lineEq)
+            var regionLine = {
+              x: xs,
+              y: ys,
+              mode: 'lines',
+              line: {
+                color: 'orange',
+                width: 2
+              }
+            }
+            data.push(regionLine)
+            console.log(`Printing ab line: a = ${intercept}, b = ${-1/z}`)
+          })
 
-          var trace2 = {
-            x: [2, 3, 4, 5],
-            y: [16, 5, 11, 9],
-            mode: 'lines',
-            type: 'scatter'
-          };
-
-          var trace3 = {
-            x: [1, 2, 3, 4],
-            y: [12, 9, 15, 12],
-            mode: 'lines+markers',
-            type: 'scatter'
-          };
-
-          var data = [trace1, trace2, trace3];
-
-          Plotly.newPlot('RCodeWithResults', data);
+          $('#loading').show()
+          setTimeout(function() {
+            Plotly.newPlot('RCodeWithResults', data, layout)
+            .then(gd => {
+              let now = new Date()
+              let dateTimeFormat = new Intl.DateTimeFormat('en', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) 
+              let [{ value: month },,{ value: day },,{ value: year },,{ value: hour },,{ value: minute },,{ value: sec },,] = dateTimeFormat .formatToParts(now) 
+              let plotFilename = `chaines-mcmc-bandes-risque-${year}${month}${day}-${hour}${minute}${sec}`
+              Plotly.downloadImage(gd, {
+                format: 'png',
+                height: 600,
+                width: 1000,
+                filename: plotFilename
+              })
+              $('#loading').hide()
+            })
+          }, 100)
         })
     })();
 };
@@ -735,10 +790,15 @@ zygotine.SEG.tests = {
       a = new zygotine.M.MeasureList(a).toString('\r\n')
       zygotine.SEG.reset()
       $('#logN').prop('checked', true).trigger('change')
-      $('#obsValues').val(a).trigger('change');
+      $('#obsValues').val(a).trigger('change')
       $('#oel').val('0.5').trigger('change')
       $('#prngSeed').val('7777').trigger('change')
       $('#meth-riskband').click()
+      var cutOffVals = [0.1, 0.5, 1, 5]
+      $('#numregions').val(cutOffVals.length+1).change()
+      $('#rp_equalwts').prop('checked', true).change()
+      $('.cut-offs').each((i, el) => $(el).val(cutOffVals[i]).change())
+      $('#nIter').val(2000).change()
     }
     
 };
