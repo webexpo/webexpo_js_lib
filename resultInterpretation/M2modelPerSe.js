@@ -2,12 +2,6 @@
     valid-jsdoc: 0
     no-extra-parens: 0
 */
-/// <reference path="A.js" />
-/// <reference path="M0.js" />
-/// <reference path="M2modelIntro.js" />
-/// <reference path="U.js" />
-/// <reference path="S.js" />
-
 
 /***** SEGInformedVarModelParameters *******/
 
