@@ -384,7 +384,7 @@ zygotine.X.display1NumericalResult = (function () {
     return f;
 })();
 
-zygotine.X.concatChains = function (result, flavor, decimalSeparator) {
+zygotine.X.concatChains = function (result, flavor, chainSep = '\t', eol = '\r\n', decimalSeparator) {
     var replaceDecimalPoint = (typeof decimalSeparator === 'string');
     if (replaceDecimalPoint) {
         replaceDecimalPoint = decimalSeparator[0] !== '.';
@@ -403,10 +403,10 @@ zygotine.X.concatChains = function (result, flavor, decimalSeparator) {
             oneLineData[iC] = shrKut[iC].data[iL];
         }
 
-        res[iL + 1] = oneLineData.join('\t');
+        res[iL + 1] = oneLineData.join(chainSep);
     }
 
-    var rep = res.join('\r\n');
+    var rep = res.join(eol);
     return replaceDecimalPoint ? rep.replace(/\./g, decimalSeparator[0]) : rep;
 }; 
 
@@ -548,5 +548,43 @@ function downloadTraceplot(mcmcParam) {
       })
       /* gd.remove() */
     })
+  }
+}
+
+zygotine.X.RiskbandFloatSetDataEntry = function (className, title, min, max) {
+  this.className = className
+  this.currentValue = null
+  this.elements = $(`.${this.className}`)
+  this.elements.attr("title", title)
+  this.min = min == undefined ? Number.NEGATIVE_INFINITY : min
+  this.max = max == undefined ? Number.POSITIVE_INFINITY : max
+  this.validation = null
+  this.reset()
+}
+
+zygotine.X.RiskbandFloatSetDataEntry.prototype = {
+  type: 'riskband-float-set',
+  reset: function () {
+    this.elements = $(`.${this.className}`)
+    if ( this.elements.length > 0 ) {
+      this.elements.change(this.getChangeFn())
+      this.elements.first().trigger('change')
+    }
+  },
+  getChangeFn() {
+    var dis = this
+    return function () {
+      dis.currentValue = dis.elements.map(function() { return $(this).val() }).get().map(parseFloat)
+      dis.validate()
+      dis.elements.removeClass('invalid')
+      if (!dis.validation.ok) {
+        dis.elements.filter((i, _) => !dis.validation.elems[i]).addClass('invalid')
+      }
+    }
+  },
+  validate: function () {
+    let validElems = this.currentValue.map(val => !isNaN(val) && val >= this.min && val <= this.max)
+    let ok = validElems.filter(v => v).length == validElems.length
+    this.validation = { ok, elems: validElems }
   }
 }
