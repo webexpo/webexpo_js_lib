@@ -2,15 +2,6 @@
     valid-jsdoc: 1
     no-extra-parens: 0
 */
-/// <reference path="A.js" />
-/// <reference path="NUM.js" />
-/// <reference path="MT.js" />
-/// <reference path="O.js" />
-/// <reference path="M0.js" />
-/// <reference path="M2modelIntro.js" />
-/// <reference path="U.js" />
-/// <reference path="S.js" />
-
 
 zygotine.M.rangeValidation = {};
 
@@ -45,6 +36,10 @@ zygotine.M.validateModelParameters = function (result, model) {
         var ml = model.measureList;
         var lu = ml.measureCountByType.uncensored;
 
+        if ( ml.nullList ) {
+            return
+        }
+        
         if ((lu < 3) || ((lu / ml.n) < 0.3)) {
             if (lu < 3) {
                 addError("A measure list must contain at least 3 uncensored measures.");

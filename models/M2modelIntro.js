@@ -285,7 +285,7 @@ zygotine.M.BaseModel =
         this.mcmcParameters = mcmcParameters;
         this.measureList = measureList;
         if (!this.measureList.hasError) {
-            if (this.specificParameters.logN) {
+            if (this.specificParameters.logN && !this.measureList.nullList) {
                 this.measureList = zygotine.M.MeasureList.divideByOel(this.measureList, this.specificParameters.oel);
             }
         } else {

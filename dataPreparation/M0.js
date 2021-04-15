@@ -353,8 +353,14 @@ zygotine.M.MeasureList = function (s, withWorkerInfo) {
 
     var fmt = zygotine.U.fmt;
 
+    if ( this.nullList == undefined ) {
+        this.nullList = false;
+    }
+
     if (!s) {
-        this.addError("Parameter \"s\" is required.");
+        if (  !this.nullList ) {
+            this.addError("Parameter \"s\" is required.");
+        }
         return;
     }
 
