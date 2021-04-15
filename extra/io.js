@@ -1,17 +1,22 @@
-// Functions for reading input from Html Form
+// Functions for reading input from 
+// and preparing output for
+// Html Form
 //
-// Author: Patrick Bï¿½lisle
+// Author: Patrick Bélisle
 
-// Version 0.2 (Mar 2021)
+// Version 0.2 (Apr 2021)
 
 // Change log
 // ======================
 //
-// Version 0.2 (Mar 2021)
-//   - included the fct defined in output.js
+// Version 0.2 (Apr 2021)
+// ----------------------
+//   - included the fct defined in output.js (deleted)
+//   - Added the function DisplayRuntime
+//
 // Version 0.1 (Mar 2021)
+// ----------------------
 //   - original code (was called input.jx)
-
 
 
 Array.prototype.commasep = function(m_by_row=5)
@@ -34,31 +39,82 @@ Array.prototype.commasep = function(m_by_row=5)
   }
   
   return code;
-}
+} // end of Array.commasep
 
-MCMCParms = function(_)
+
+Number.prototype.commasep = function()
 {
-  var mcmc = {iter: 0, burnin: 0, monitor_burnin: false};
+  var parts = this.toString().split(".");
+
+  if (parts[0].length > 4)
+  { 
+    while (parts[0].match(/\d{4}/)) parts[0] = parts[0].replace(/(\d+)(\d{3})/, '$1,$2');
+  }
   
-  mcmc.niter  = Number($('#nIter').val())
-  mcmc.burnin = Number($('#nBurnin').val())
-  mcmc.monitor_burnin = $('#monitorBurnin').is(':checked')
+  return parts.join(".");
+} // end of Number.commasep
+
+
+DisplayLocalTime = function()
+{
+  var now = new Date();
+  console.log(now.toString());
+} // end of DisplayLocalTime
+
+
+DisplayRuntime = function(t0, t1, n_iter)
+{
+  if (typeof t1 == 'undefined') t1 = performance.now();
+  
+  var seconds_exact = (t1-t0) / 1000;
+  var seconds = Math.floor(seconds_exact);
+  
+  var str = "Run time: " + seconds.toString() + " seconds";
+  
+  if (seconds > 60)
+  {
+    let min = Math.floor(seconds/60);
+    seconds -= min * 60;
+    str += " [" + min.toString() + " min " + seconds.toString() + " sec]";
+  }
+  
+  str += ".";
+  
+  if (typeof n_iter != 'undefined')
+  {
+    str += '\n\t';
+    let speed = Math.round(n_iter / seconds_exact);
+    str += '(approx. ' + speed.commasep() + ' iterations per second)';
+  }
+  
+  console.log(str);
+} // end of DisplayRuntime
+
+
+MCMCParms = function(my_document)
+{
+  var mcmc = {niter: 0, burnin: 0, monitor_burnin: false};
+
+  mcmc.niter  = Number(my_document.niter.value);
+  mcmc.burnin = Number(my_document.burnin.value);
+  mcmc.monitor_burnin = my_document.monitor_burnin.checked;
       
   return mcmc;
-}
+} // end of MCMCParms
 
+  
 ReadData = function(my_document)
 {
   // Example of call: var data = ReadData(document.riskban_form);
   
-  var data_txt = $('#obsValues').val()
+  var data_txt = my_document.data.value;  // Name of text-area must be -data-
   var data = ReadDataFromHtmlTextArea(data_txt);
   
   data.N = data.y.length + data.gt.length + data.lt.length + data.interval.gt.length;
   data.any_censored = data.gt.length > 0 | data.lt.length > 0 | data.interval.gt.length > 0;
   
   return data;  
-}
+}  //  end of ReadData
 
 
 ReadDataFromHtmlTextArea = function(data_txt)
@@ -95,7 +151,7 @@ ReadDataFromHtmlTextArea = function(data_txt)
       }
       else if (data_lines[i].match(regex_bracket))
       {
-        let values = data_lines[i].replace(regex_bracket, "").split(/[,-]/);
+        let values = data_lines[i].replace(regex_bracket, "").split(',');
         interval.gt.push(Number(values[0]));
         interval.lt.push(Number(values[1]));
       }
@@ -110,14 +166,4 @@ ReadDataFromHtmlTextArea = function(data_txt)
   data = {y: y, gt: gt, lt: lt, interval: interval};
   
   return data;
-}
-
-TakeLog = function(dat)
-{
-  dat.y = dat.y.map(Math.log);
-  dat.gt = dat.gt.map(Math.log);
-  dat.lt = dat.lt.map(Math.log);
-  dat.interval.gt = dat.interval.gt.map(Math.log);
-  dat.interval.lt = dat.interval.lt.map(Math.log);
-  return dat
-}
+} // end of ReadDataFromHtmlTextArea

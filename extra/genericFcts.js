@@ -1,7 +1,27 @@
 // Functions of general interest
 // Author: Patrick Bélisle
 
+// Version 0.2 (Apr 2021)
+
+
+// Change log
+// ======================
+//
+// Version 0.2 (Apr 2021)
+// ----------------------
+//   Added the following functions:
+//     - any_le
+//     - division_sum
+//     - division_sqSum
+//     - order
+//     - rank
+//     - round
+//     - split
+//     - sum_of_log
+//
 // Version 0.1 (Mar 2021)
+// ----------------------
+//   - original code
 
 
 Array.prototype.all = function()
@@ -74,6 +94,24 @@ Array.prototype.any_gt = function(k)
     return undefined;
   }
 } // end of Array.any_gt
+
+
+Array.prototype.any_le = function(k)
+{
+  // k: scalar comparison value
+ 
+  if (this.length > 0)
+  {
+    let any_le = false;
+    for (let i=0; i<this.length && !any_le; i++) any_le = this[i] <= k;
+    
+    return any_le;
+  }
+  else
+  {
+    return undefined;
+  }
+} // end of Array.any_le
 
 
 Array.prototype.any_lt = function(k)
@@ -161,6 +199,46 @@ Array.prototype.divided_by = function(a)
     return this.map(x => x / a);
   }
 } // end of Array.divided_by
+
+
+Array.prototype.division_sqSum = function(denom, log_input=false)
+{
+  // denom: an array of same length as 'this'
+  // Returns sum (a_i/b_i)^2
+  
+  var sqSum = 0;
+  
+  if (log_input)
+  {
+    for (let i=0; i<this.length; i++) sqSum += Math.exp(2*(this[i]-denom[i]));
+  }
+  else
+  {
+    for (let i=0; i<this.length; i++) sqSum += (this[i]/denom[i])**2;
+  }
+  
+  return sqSum;
+} // end of Array.division_sqSum
+
+
+Array.prototype.division_sum = function(denom, log_input=false)
+{
+  // denom: an array of same length as 'this'
+  // Returns sum (a_i/b_i), that is, the sum of element-wise divisions 
+  
+  var sum = 0;
+  
+  if (log_input)
+  {
+    for (let i=0; i<this.length; i++) sum += Math.exp(this[i]-denom[i]);
+  }
+  else
+  {
+    for (let i=0; i<this.length; i++) sum += this[i]/denom[i];
+  }
+  
+  return sum;
+} // end of Array.division_sum
 
 
 Array.prototype.dot_product = function(a)
@@ -290,7 +368,7 @@ Array.prototype.min = function()
 
 Array.prototype.minus = function(a)
 {
-  // a: either s scalar or an array of same length as 'this'
+  // a: either a scalar or an array of same length as 'this'
 
   if (Array.isArray(a))
   {
@@ -304,6 +382,30 @@ Array.prototype.minus = function(a)
     return this.map(x => x - a);
   }
 } // end of Array.minus
+
+
+Array.prototype.order = function()
+{
+  var rank = this.rank();
+  var o = rank.slice();
+  var taken = [];
+  
+  for (let i=0; i<this.length; i++) taken.push(false);
+  
+  console.log("rank", rank);
+  
+  for (let i=0; i<this.length; i++) 
+  {
+    let r = rank[i];
+    
+    while (taken[r]) r--;
+    if (r > 0) taken[r] = true;
+    
+    o[r] = i;
+  }
+
+  return o;
+} // end of Array.order
 
 
 Array.prototype.plus = function(a)
@@ -340,6 +442,23 @@ Array.prototype.pmax = function(a)
 } // end of Array.pmax
 
 
+quadratic_soln = function(A, B, C)
+{
+  var delta = B**2 - 4*A*C;
+  var midpoint = - B / (2*A);
+  var m = Math.sqrt(delta) / (2 * Math.abs(A));
+  
+  return {left: midpoint - m, right: midpoint + m};
+} // end of quadratic soln
+
+
+Array.prototype.rank = function()
+{
+  // code found on StockExchange (slightly modified)
+  return this.map((x, i) => [x, i]).sort((a, b) => b[0] - a[0]).reduce((a, x, i, s) => (a[x[1]] = i > 0 && s[i - 1][0] ==  x[0] ? a[s[i - 1][1]] : this.length - i - 1, a), []);
+} // end of Array.rank
+
+
 Array.prototype.rep = function(n_rep)
 {
   // this: array
@@ -367,6 +486,18 @@ Array.prototype.rep = function(n_rep)
   
   return rep;
 } // end of Array.rep
+
+
+Array.prototype.round = function(digits=2)
+{
+  return this.map(x => x.round(digits));
+} // end of Array.round
+
+
+Number.prototype.round = function(digits=2)
+{
+  return Number((this).toFixed(digits))
+} // end of Number.round
 
 
 Array.prototype.sd = function()
@@ -403,6 +534,20 @@ Array.prototype.selected = function(cond)
 } // end of Array.selected
 
 
+Array.prototype.split = function(ref)
+{
+  var le = [], gt = [];
+  
+  for (let i=0; i<this.length; i++)
+  {
+    if (this[i] <= ref) le.push(this[i]);
+    else gt.push(this[i]);
+  }
+  
+  return {le: le, gt: gt};
+} // end of Array.split
+
+
 seq = function(stop, from=0)
 {
   // return seq(from=from, to=stop-1), in R terms
@@ -435,7 +580,7 @@ Array.prototype.sorted = function()
 
 Array.prototype.sq = function () 
 {
-  return this.map(function (x){return Math.pow(x, 2);});
+  return this.map(x => x**2);
 } // end of Array.sq
 
 
@@ -452,14 +597,22 @@ Array.prototype.sum = function()
 } // end of Array.sum
 
 
+Array.prototype.sum_of_log = function()
+{
+  // Returns the sum of the log of the elements of 'this', that is:
+  // sum(log(this[i]))
+  
+  return this.map(Math.log).sum();
+} // end of Array.sum_of_log
+
+
 Array.prototype.times = function(a)
 {
   // a: either a scalar or an array of same length as 'this'
 
   if (Array.isArray(a))
   {
-    // Return the elementwise product of the two arrays (of same length) this & a
-    
+    // Returns the elementwise product of the two arrays (of same length) 'this' & a
     return this.map(function (x, i){return x * a[i];});
   }
   else

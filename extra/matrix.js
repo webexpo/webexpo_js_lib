@@ -1,5 +1,16 @@
 // Matrix Algebra functions
-// PB, Mar 2021
+//
+// Author: Patrick Bélisle
+//
+// Version 0.2 (Apr 2021)
+
+
+// Change log
+// ======================
+//
+// Version 0.1 (Mar 2021)
+//   - original code
+
 
 Array.prototype.cbind = function(m)
 {
@@ -104,6 +115,42 @@ Array.prototype.inverse = function()
   
   return inverse;
 } // end of Array.inverse
+
+
+function LinearRegression_BetaHat(Y, Xp)
+{   
+  return Xp.matrix_product(Xp.transpose()).inverse().matrix_product(Xp).matrix_times_vector(Y);
+} // end of LinearRegression_BetaHat
+
+
+Array.prototype.matrix_product = function(b)
+{
+  // Returns the matrix product of 'this' x b
+  
+  var R = this.length; // number of Rows of this
+  var C = b[0].length; // number of Columns of b
+  
+  var m = create_matrix(R, C);
+
+  for (let j=0; j<C; j++)
+  {
+    let column_j = [];
+    for (let i=0; i<b.length; i++) column_j.push(b[i][j]);
+    
+    for (let i=0; i<R; i++) m[i][j] = column_j.dot_product(this[i]);
+  }
+  
+  return m;
+} // end of Array.matrix_product
+
+
+Array.prototype.matrix_times_vector = function(v)
+{
+  var res = [];
+  for (let i=0; i<this.length; i++) res.push(this[i].dot_product(v));
+  
+  return res; 
+} // end of Array.matrix_times_vector
 
 
 function NewtonRaphsonChange(Jacobian, f, target=[])
