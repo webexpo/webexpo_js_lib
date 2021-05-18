@@ -2,8 +2,6 @@
     valid-jsdoc: 0
     no-extra-parens: 0
 */
-/// <reference path="A.js" />
-/// <reference path="M0.js" />
 
 /***** McmcParameters    *************/
 
