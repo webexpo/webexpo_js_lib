@@ -1,10 +1,20 @@
 // Code for Riskband/Banerjee algorithm
-// Html-related functions 
+// Html-related functions
 //
-// Version 0.1 (Mar 2021)
-// Author: Patrick B?lisle
+// Author: Patrick B�lisle 
+//
+//
+// Version 0.2 (May 2021)
+// [distributed]
 
 // Requires: output.js
+
+// Change Log
+// ========================
+//
+// Version 0.2 (May 2021)
+// ----------------------
+//  Added an error message when in presence of negative values and assuming log-normal distribution of the data.
 
 
 function change_R()
@@ -96,6 +106,7 @@ function DisplayRegionProbsTable(A, region_probs_value)
   }
 } // end of DisplayRegionProbsTable
 
+
 function ErrorMsg(error_code, A)
 {
   var msgid
@@ -119,7 +130,7 @@ function ErrorMsg(error_code, A)
   document.getElementById("riskband_error_msg").innerHTML = html;
   */
  return `${$.i18n(msgid)}${extraInfo}.`
-}
+} // end of ErrorMsg
 
 
 function PleaseBePatient()
@@ -152,7 +163,7 @@ function regionProbsChange(region_probs_option)
   var A = Read_A_fromHtml(); // Preserve Cut-off values if already entered
   
   DisplayRegionProbsTable(A, region_probs_option.value);
-}
+} // end of regionProbsChange
 
 
 function WorkComplete(sample)
@@ -161,9 +172,9 @@ function WorkComplete(sample)
   html += "<br><input type='button' id='CopyRCodeWithResults' value='Copy code to clipboard' onClick='CopyRCodeWithMCMCResults()'>";
   document.getElementById("RCodeWithResults").innerHTML = html;
   
-  var RCode_mu    = "mcmc = list(mu = c(" + sample.mu.commasep() + ")";
-  var RCode_sigma = "sigma = c(" + sample.sigma.commasep() + ")";
+  var RCode_mu    = "mcmc = list(mu = c(" + commasep(sample.mu) + ")";
+  var RCode_sigma = "sigma = c(" + commasep(sample.sigma) + ")";
   var RCode = RCode_mu + ",\n" + RCode_sigma + ")\n";
   
-  document.getElementById("RCode").value = RCode;
+  document.getElementById("RCode").value = RCode; 
 } // end of WorkComplete

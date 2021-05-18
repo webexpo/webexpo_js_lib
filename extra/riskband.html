@@ -1,0 +1,92 @@
+<html>
+<head>
+<!-- Version 0.2 (Apr 2021)
+  Now loading the script censored_data.js
+-->
+
+<!-- Fcts JavaScript de Francois Lemay -->
+<script src="../webexpo-JL/webexpo/dataPreparation/A.js"></script>
+<script src="../webexpo-JL/webexpo/dataPreparation/G.js"></script>
+<script src="../webexpo-JL/webexpo/dataPreparation/U.js"></script>
+<script src="../webexpo-JL/webexpo/dataPreparation/M0.js"></script>
+<script src="../webexpo-JL/webexpo/randomSampleGeneration/MT.js"></script>
+<script src="../webexpo-JL/webexpo/randomSampleGeneration/NUM.js"></script>
+<script src="../webexpo-JL/webexpo/randomSampleGeneration/O.js"></script>
+<script src="../webexpo-JL/webexpo/randomSampleGeneration/S.js"></script>
+
+<!-- Fcts JavaScript de Patrick Belisle -->
+<script src="riskband.js"></script>
+<script src="riskband-htmlManagement.js"></script>
+<script src="../js/lib/censored_data.js"></script>
+<script src="../js/lib/derivatives.js"></script>
+<script src="../js/lib/genericFcts.js"></script>
+<script src="../js/lib/io.js"></script>
+<script src="../js/lib/log-arithmetic.js"></script>
+<script src="../js/lib/matrix.js"></script>
+<script src="../js/lib/normal-OneSubjectEstimates.js"></script>
+<script src="../js/lib/stats.js"></script>
+
+</head>
+<body bgcolor='white' onLoad="DisplayRegionProbsTable()">
+<form name="riskband_form">
+<table border=0>
+<tr><td>
+<h1 style="color: RoyalBlue;"> Algorithm RiskBand</h1><br>
+</td><td></td></tr>
+<tr><td style="vertical-align: top;">
+Observations:<br>
+<textarea id="data" rows=15 cols=40></textarea>
+<br><br>
+<input type="button" name="lancer" value="Lancer" onClick="run_Riskband()">
+<input type="button" name="clear" value="R&eacute;initialiser" onClick="clear_data()">
+<br><br>
+<input type='radio' name='logNormalDistrn' id='logNormalDistrn' checked value=1> Distribution log-normale<br>
+<input type='radio' name='logNormalDistrn' id='logNormalDistrn'         value=0> Distribution normale
+<br><br>
+MCMC parms:
+<br><br>
+<table border=0>
+<tr><td># iterns:</td><td><input name="niter" type="text" value="10000"></td></tr>
+<tr><td>burn-in:</td><td><input name="burnin" type="text" value= "1000"></td></tr>
+<tr><td></td><td><input type="checkbox" name="monitor_burnin">Surveiller</td></tr>
+</table>
+</td>
+<td style="vertical-align: top; padding-left: 100px;">
+<table border=0>
+  <tr><td>Parameters range</td>
+     <td style='text-align:center;'>Lower limit</td>
+     <td style='text-align:center;'>Upper Limit</td>
+  </tr>
+<tr><td>&mu;</td>
+  <td ><input style='text-align:center;' type='text' id='mu_lower' value='-3'></td>
+  <td ><input style='text-align:center;' type='text' id='mu_upper' value='6.2'></td>
+</tr>
+<tr><td>GSD --- exp(&sigma;)</td>
+  <td ><input style='text-align:center;' type='text' id='gsd_lower' value='1.05'></td>
+  <td ><input style='text-align:center;' type='text' id='gsd_upper' value='4'></td>
+</tr>
+</table>
+<br><br>
+<p id='error_msg'></p>
+<table border=0><tr><td style='vertical-align: top; padding-right: 20px;'>
+Number of regions
+  <select id="R" onChange="change_R()">
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5" selected>5</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+    <option value="8">8</option>
+  </select>
+  </td><td>
+<input type='radio' checked name='regionProbs' id='rp_equalwts' onChange="regionProbsChange(this)" value="equalwts"> Equally-weighted regions<br>
+<input type='radio'         name='regionProbs' id='rp_unif' onChange="regionProbsChange(this)" value="unif"> Uniform priors (on mu, sigma)<br>
+<input type='radio'         name='regionProbs' id='rp_user' onChange="regionProbsChange(this)" value="user"> User-defined prior probabilities
+</td></tr></table>
+<p id="regions_table"></p>
+<p id="RCodeWithResults"></p>
+</td></tr></table>
+</form>
+</body>
+</html>

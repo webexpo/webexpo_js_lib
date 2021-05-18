@@ -1,6 +1,6 @@
 // Functions to calculate derivatives often involved in log(posterior)
 //
-// Author: Patrick Bélisle
+// Author: Patrick Bï¿½lisle
 //
 // Version 0.2 (Apr 2021)                                              
 
@@ -406,72 +406,6 @@ dPhiInterval_dsigma = function(interval, mu, sigma, log_sigma)
   
   return {Bp: Bp, lz1: lz1, lz2: lz2, logphi1: logphi1, logphi2: logphi2};
 } // end of dPhiInterval_dsigma
-
-
-Object.prototype.dprod_dtheta = function(v, u_prime, v_prime)
-{
-  // this [u], v, u_prime & v_prime are either
-  //     a) all arrays (NOT on log-scale)
-  //  or b) all log-notation objects
-  
-  // IMPORTANT / WARNING
-  //  => This fct was not used nor tested yet
-  
-  if (Array.isArray(this))
-  {
-    return u_prime.times(v).plus(this.times(v_prime));
-  }
-  else if (Array.isArray(this.x))
-  {
-    var t1 = {x: u_prime.x.plus(v.x),    s: u_prime.s.times(v.s)};
-    var t2 = {x: this.x.plus(v_prime.x), s: this.s.times(v_prime.s)};
-    
-    return t1.plus_log(t2);
-  } 
-  else
-  {
-    // this.x is a number
-    
-    var t1 = {x: u_prime.x + v.x,     s: u_prime.s * v.s};
-    var t2 = {x: this.x + v_prime.x,  s: this.s * v_prime.s};
-    
-    return t1.plus_log(t2);
-  } 
-} // end of Object.dprod_dtheta
-
-
-Object.prototype.dratio_dtheta = function(v, u_prime, v_prime)
-{
-  // this [u], v, u_prime & v_prime are either
-  //     a) all arrays (NOT on log-scale)
-  //  or b) all log-notation objects
-  
-  // IMPORTANT / WARNING
-  //  => This fct was not used nor tested yet
-  
-  if (Array.isArray(this))
-  {
-    return u_prime.times(v).minus(this.times(v_prime)).divided_by(v.sq());
-  }
-  else if (Array.isArray(this.x))
-  {
-    var up_v = {x: u_prime.x.plus(v.x),    s: u_prime.s.times(v.s)};
-    var u_vp = {x: this.x.plus(v_prime.x), s: this.s.times(v_prime.s)};
-    
-    return up_v.minus_log(u_vp).lo_div_(v.x, 2);
-  }  
-  else
-  {
-    // this.x is a number
-    var up_v = {x: u_prime.x + v.x,     s: u_prime.s * v.s};
-    var u_vp = {x: this.x + v_prime.x,  s: this.s * v_prime.s};
-    
-    var tmp = up_v.minus_log(u_vp);
-    
-    return Math.exp(tmp.x - 2*v.x) * tmp.s;
-  }
-} // end of Object.dratio_dtheta
-
 
 dsumLogB_dtheta = function(B, Bp)
 {

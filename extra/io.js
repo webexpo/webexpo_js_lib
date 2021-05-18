@@ -4,10 +4,20 @@
 //
 // Author: Patrick Bélisle
 
-// Version 0.2 (Apr 2021)
+// Version 0.3 (May 2021)
+// [distributed]
 
 // Change log
 // ======================
+//
+// Version 0.3 (May 2021)
+// ----------------------
+//   Modified function(s) 
+//     - ReadDataFromHtmlTextArea  -- now calling Object.create
+//
+//   The definition of the following functions were moved from Array.prototype.* to classical fct defns:
+//     - commasep
+//
 //
 // Version 0.2 (Apr 2021)
 // ----------------------
@@ -19,19 +29,21 @@
 //   - original code (was called input.jx)
 
 
-Array.prototype.commasep = function(m_by_row=5)
+commasep = function(a, m_by_row=5)
 {  
+  // a: an array
+  
   var code = "",
       tmp = [];
   
-  for (let i=1; i<=this.length; i++)
+  for (let i=1; i<=a.length; i++)
   {
-    tmp.push(this[i-1]);
+    tmp.push(a[i-1]);
     
-    if (i%m_by_row == 0 | i == this.length)
+    if (i%m_by_row == 0 | i == a.length)
     {
       let str = tmp.join(", ");
-      let eol = i == this.length ? "" : ",\n";
+      let eol = i == a.length ? "" : ",\n";
       str += eol;
       code += str;
       tmp = [];
@@ -39,12 +51,14 @@ Array.prototype.commasep = function(m_by_row=5)
   }
   
   return code;
-} // end of Array.commasep
+} // end of commasep
 
 
-Number.prototype.commasep = function()
+commasep_thousands = function(a)
 {
-  var parts = this.toString().split(".");
+  // Return a large number in a nice fashion (with commas separating thousands)
+  
+  var parts = a.toString().split(".");
 
   if (parts[0].length > 4)
   { 
@@ -52,7 +66,7 @@ Number.prototype.commasep = function()
   }
   
   return parts.join(".");
-} // end of Number.commasep
+} // end of commasep_thousands
 
 
 DisplayLocalTime = function()
@@ -84,7 +98,7 @@ DisplayRuntime = function(t0, t1, n_iter)
   {
     str += '\n\t';
     let speed = Math.round(n_iter / seconds_exact);
-    str += '(approx. ' + speed.commasep() + ' iterations per second)';
+    str += '(approx. ' + commasep_thousands(speed) + ' iterations per second)';
   }
   
   console.log(str);
@@ -110,11 +124,11 @@ ReadData = function(my_document)
   var data_txt = my_document.data.value;  // Name of text-area must be -data-
   var data = ReadDataFromHtmlTextArea(data_txt);
   
-  data.N = data.y.length + data.gt.length + data.lt.length + data.interval.gt.length;
-  data.any_censored = data.gt.length > 0 | data.lt.length > 0 | data.interval.gt.length > 0;
+  data.N = data.size();
+  data.any_censored = data.any_censored();
   
   return data;  
-}  //  end of ReadData
+} // end of ReadData
 
 
 ReadDataFromHtmlTextArea = function(data_txt)
@@ -163,7 +177,11 @@ ReadDataFromHtmlTextArea = function(data_txt)
   }
   
   
-  data = {y: y, gt: gt, lt: lt, interval: interval};
+  var data = Object.create(CensoredData);
+    data.y = y;
+    data.gt = gt;
+    data.interval = interval;
+    data.lt = lt;
   
   return data;
 } // end of ReadDataFromHtmlTextArea

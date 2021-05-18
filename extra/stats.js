@@ -1,19 +1,47 @@
 //==============================================================================
 // Statistical fcts
-//
-// Version 0.3 (Apr 2021)
 //                      
 // Author: Patrick Bélisle
 
 
-// requires genericFcts.js
-// requires log-arithmetic.js
-// requires dataPreparation/*.js 
-//  (in particular S.js, but others as well, at least in the current vesion)
+// Version 0.4 (May 2021)
+// [distributed]
+
+  // requires genericFcts.js
+  // requires log-arithmetic.js
+  // requires dataPreparation/*.js 
+  //  (in particular S.js, but others as well, at least in the current version)
 
 
 // Change log
-// ======================
+// ===============================
+//
+//
+// Version 0.4 (May 2021)
+// ----------------------
+//   Added the following function:
+//     - CrI
+//     - desc_stats
+//     - rbinom
+//  
+//   The following function(s) was (were) modified [now calling as_log]
+//     - phi_diff [it also now accepts mu argument as an array]
+//
+//   The definition of the following functions were moved from Array.prototype.* to classical fct defns
+//     - phi
+//     - Phi
+//
+//   The Jacobian in the Newton-Raphson algorithm is now defined through MyMatrix
+//
+//   rbeta is now based on variable type DensityFct
+//
+//   The code in rnorm_gt, rnorm_lt & rnorm_interval was revisited.
+//
+//   Functions Phi & pnorm now accept arrays in mean & sd arguments.
+//
+//   The property .domain was added to all logf* objects.
+//   The property .quantile (used in OneSubjectEstimates) was added to a few logf* objects.
+//
 //
 // Version 0.3 (Apr 2021)
 // ----------------------
@@ -23,12 +51,14 @@
 //   The functions in logf.js & stat-BetaDistrn.js
 //   were included in the present file.
 //
+//
 // Version 0.2 (Mar 2021)
 // ----------------------
 //   - Slighlty modified calculation of phi
 //      [that fct is not using zygotine any more either]
 //   - Moved fct varphi from normal-OneSubjectEstimates.js to this file
 //   - Phi_interval (not used yet) was renamed PhiInterval
+//
 //
 // Version 0.1 (Mar 2021)
 // ----------------------
@@ -65,14 +95,15 @@ BetaParmsFromQuantiles = function(lcl, ucl, level)
       mode, mode1, mode2, 
       iter = 0;
       
+  var J = create_matrix(2, 2);
 
-    
   
   while (cont)
-  {
-    var Beta  = new logf_beta(alpha,                      beta);
-    var Beta1 = new logf_beta(alpha,                      beta + epsilon.derivative);
-    var Beta2 = new logf_beta(alpha + epsilon.derivative, beta);  
+  {    
+    var Beta = BetaDensity(alpha, beta);
+    var Beta1 = BetaDensity(alpha, beta + epsilon.derivative);
+    var Beta2 = BetaDensity(alpha + epsilon.derivative, beta);      
+    
     
     F1 = Beta.cdf(lcl);             
     F2 = Beta.cdf(ucl);
@@ -83,15 +114,13 @@ BetaParmsFromQuantiles = function(lcl, ucl, level)
     F2pa = (Beta2.cdf(ucl) - F2) / epsilon.derivative;
     F2pb = (Beta1.cdf(ucl) - F2) / epsilon.derivative;
     
-    J1 = [F1pa, F1pb];
-    J2 = [F2pa, F2pb];
-    J = [J1, J2];
+    J.m = [[F1pa, F1pb], [F2pa, F2pb]]; // Jacobian
         
     change = NewtonRaphsonChange(J, [F1, F2], target);
     alpha -= change[0];
     beta  -= change[1];
     
-    converged = change.map(Math.abs).max() < epsilon.NR;
+    converged = max_abs(change) < epsilon.NR;
     cont = !converged && ++iter < 300;
     
     if (alpha < 0) alpha = (alpha + change[0]) / 2;
@@ -105,28 +134,46 @@ BetaParmsFromQuantiles = function(lcl, ucl, level)
 } // end of BetaParmsFromQuantiles
 
 
-Array.prototype.CI = function(level=0.95)
+CrI = function(arr, level=0.95)
 {
-  var CI = [];
-  var len = this.length;
-  var s = this.sort(function(a, b){return a-b}); // sorted values
+  var CrI = [];
+  var len = arr.length;
+  var x = arr.slice(); // copy by value, not by reference
+  var s = x.sort(function(a, b){return a-b}); // sorted values
   
-  // CI lower limit
+  // CrI lower limit
   var j = (1-level) / 2 * len;
   var i = Math.floor(j);
   var z = s[i-1];
   if (j > i) z += (j-i) * (s[i] - z);
-  CI.push(z);
+  CrI.push(z);
   
-  // CI upper limit
+  // CrI upper limit
   var j = (1+level) / 2 * len;
   var i = Math.floor(j);
   var z = s[i-1];
   if (j > i) z += (j-i) * (s[i] - z);
-  CI.push(z);
+  CrI.push(z);
   
-  return CI;
-} // end of Array.CI
+  return CrI;
+} // end of CrI
+
+
+desc_stats = function(obj, CrI_level=0.95, ndigits=4)
+{
+  console.log("*** Desc stats (CrI level = %s %) ***", 100*CrI_level);
+  
+  for (const property in obj) 
+  {
+    let tmp = {};
+    
+    tmp.mean   = round(mean(obj[property]), ndigits);
+    tmp.median = round(median(obj[property]), ndigits);
+    tmp.CrI    = round(CrI(obj[property], CrI_level), ndigits);
+  
+    console.log(`${property}:`, tmp);
+  }
+} // end of desc_stats
 
 
 lgamma = function(z)
@@ -150,20 +197,22 @@ pbeta = function(x, alpha, beta)
 } // end of pbeta
 
 
-Array.prototype.phi = function(log_output=false)
+phi = function(arr, log_output=false)
 {
   const k = Math.log(2*Math.PI) / 2;
-  var u = this.map(z => -z*z/2 - k);
+  var u = arr.map(z => -z*z/2 - k);
   
   if (log_output) return u;
   else            return u.map(Math.exp);
-} // end of Array.phi
+} // end of phi
 
 
 phi_diff = function(interval, mean=0, sd=1, log_output=false)
 {
   // interval: a literal with dimensions gt & lt [two arrays of same length, the lower & upper interval endpoints, respectively]
-  // mean & sd: two numbers
+  // mean: either a) an array of same length as interval.gt
+  //           or b) as number
+  // sd: a number
   
   // Returns phi((this-mean)/sd) - phi((a-mean)/sd)  if log_output = false
   // Returns the above as a log-notation object      if log_output = true
@@ -172,38 +221,66 @@ phi_diff = function(interval, mean=0, sd=1, log_output=false)
   {
     let tmp = phi_diff({gt: [interval.gt], lt: [interval.lt]}, mean, sd, log_output);
     
-    if (log_output) return {gt: tmp.gt[0], lt: tmp.lt[0]};
+    if (log_output)
+    {
+      tmp.x = tmp.x[0];
+      tmp.s = tmp.s[0];
+      return tmp;
+    }
     else            return tmp[0];
   }
   else
   {
     const k = Math.log(2*Math.PI) / 2;
-  
-    a = interval.gt.map(x => -0.5*((x-mean)/sd)**2 - k);
-    b = interval.lt.map(x => -0.5*((x-mean)/sd)**2 - k);
+    var a, b;
+    
+    if (Array.isArray(mean))
+    {
+      a = as_log(interval.gt.map((x,i) => -0.5*((x-mean[i])/sd)**2 - k), true, -1);
+      b = as_log(interval.lt.map((x,i) => -0.5*((x-mean[i])/sd)**2 - k), true);
+    }
+    else
+    {
+      a = as_log(interval.gt.map(x => -0.5*((x-mean)/sd)**2 - k), true, -1);
+      b = as_log(interval.lt.map(x => -0.5*((x-mean)/sd)**2 - k), true);
+    }
 
-    a = {x: a, s: [-1].rep(a.length)};
-    b = {x: b, s:  [1].rep(b.length)};
-  
-    var d = b.plus_log(a);
+    var d = b.plus(a);
   
     if (log_output) return d;
-    else            return d.as_real();
+    else            return d.as_real(false);
   }
 } // end of phi_diff
 
 
-
-Array.prototype.Phi = function(mean=0, sd=1, lower_tail=true, log_p=false)
+Phi = function(arr, mean=0, sd=1, lower_tail=true, log_p=false)
 {
-  return this.map(x => zygotine.S.normal.cdf(x, mean, sd, lower_tail, log_p));
-} // end of Array.Phi
+  // arr: an array
+  // mean: either a) an array of same length as arr
+  //           or b) a number
+  // sd: either a) an array of same length as arr
+  //         or b) a number  
+  
+  if (typeof arr == 'number')
+  {
+    return zygotine.S.normal.cdf(x, mean, sd, lower_tail, log_p);
+  }
+  else if (Array.isArray(mean))
+  {
+    if (Array.isArray(sd))     return arr.map((z,i) => zygotine.S.normal.cdf(z, mean[i], sd[i], lower_tail, log_p));
+    else                       return arr.map((z,i) => zygotine.S.normal.cdf(z, mean[i], sd, lower_tail, log_p));
+  }
+  else if (Array.isArray(sd))  return arr.map((z,i) => zygotine.S.normal.cdf(z, mean, sd[i], lower_tail, log_p));
+  else                         return arr.map(z => zygotine.S.normal.cdf(z, mean, sd, lower_tail, log_p));
+} // end of Phi
 
 
 PhiInterval = function(interval, mean=0, sd=1, log_output=false)
 {
   // interval: a literal with dimension gt & lt (two arrays of same length)
-  // mean, sd: scalar
+  // mean: an array (of same length as interval.gt & interval.lt)
+  //    or a scalar
+  // sd: scalar
   
   // Returns pnorm(b, mean, sd) - pnorm(this, mean, sd)  [in R notation],
   //   or its log() value if log_output = true
@@ -240,10 +317,10 @@ PhiInterval = function(interval, mean=0, sd=1, log_output=false)
   }
     
   
-  logPhi_a = {x: logPhi_a, s: [-1].rep(b.length)}; 
-  logPhi_b = {x: logPhi_b, s:  [1].rep(b.length)};
+  logPhi_a = as_log(logPhi_a, true, -1);
+  logPhi_b = as_log(logPhi_b, true);
   
-  var PhiInterval = logPhi_b.plus_log(logPhi_a).x;
+  var PhiInterval = logPhi_b.plus(logPhi_a).x;
   
   if (interval_dim_are_numbers)
   {
@@ -256,18 +333,25 @@ PhiInterval = function(interval, mean=0, sd=1, log_output=false)
 } // end of PhiInterval
 
 
-pnorm = function(x, mean=0, sd=1, lower_tail=true, log_p=false)
+pnorm = function(arr, mean=0, sd=1, lower_tail=true, log_p=false)
 {
-  // x: number or array
+  // arr: an array
+  // mean: either a) an array of same length as arr
+  //           or b) a number
+  // sd: either a) an array of same length as arr
+  //         or b) a number  
   
-  if (typeof x == 'number')
+  if (typeof arr == 'number')
   {
     return zygotine.S.normal.cdf(x, mean, sd, lower_tail, log_p);
   }
-  else
+  else if (Array.isArray(mean))
   {
-    return x.map(z => zygotine.S.normal.cdf(z, mean, sd, lower_tail, log_p));
+    if (Array.isArray(sd))     return arr.map((z,i) => zygotine.S.normal.cdf(z, mean[i], sd[i], lower_tail, log_p));
+    else                       return arr.map((z,i) => zygotine.S.normal.cdf(z, mean[i], sd, lower_tail, log_p));
   }
+  else if (Array.isArray(sd))  return arr.map((z,i) => zygotine.S.normal.cdf(z, mean, sd[i], lower_tail, log_p));
+  else                         return arr.map(z => zygotine.S.normal.cdf(z, mean, sd, lower_tail, log_p));
 } // end of pnorm
 
 
@@ -296,8 +380,8 @@ function qnorm(p, mean=0, sd=1, lower_tail=true, log_p=false)
     let size = p.length;
     
     // Turn mean & sd into arrays if they're not already
-    if (typeof mean == 'number')    mean = as_array(mean, mean, size);
-    if (typeof   sd == 'number') sd = as_array(sd, sd, size);
+    if (typeof mean == 'number') mean = as_array(mean, mean, size);
+    if (typeof   sd == 'number')   sd = as_array(sd, sd, size);
     
     for (let i=0; i<size; i++)
     {
@@ -312,9 +396,22 @@ function qnorm(p, mean=0, sd=1, lower_tail=true, log_p=false)
 
 rbeta = function(alpha, beta, n, other, iter)
 {
-  var Beta = new logf_beta(alpha, beta);
-//    Beta.other = other;
-//    Beta.iter = iter;
+  var Beta = Object.create(DensityFct);
+    var f = new logf_beta(alpha, beta);
+    Beta.alpha  = f.alpha;
+    Beta.beta   = f.beta;
+    Beta.mode   = f.mode;
+    
+    Beta.g_compute = f.g_compute; 
+    Beta.g         = f.g;
+    
+    Beta.logf        = f.logf;
+    Beta.logf_prime  = f.logf_prime;
+    Beta.logf_second = f.logf_second;
+    
+    Beta.domain = f.domain;
+    Beta.label  = f.label;
+    
   
   if (typeof n == 'undefined')
   {
@@ -335,7 +432,59 @@ rbeta = function(alpha, beta, n, other, iter)
 } // end of rbeta
 
 
-// ICI cette fct ne fait pas ce que j'attends
+rbinom = function(N, p, len=1)
+{
+  // N: a number (the maximum value taken by the binomial random variable for which we are generating random values)
+  // p: a number or an array, with probability-ies of 'success'
+  // len: a number (IMPORTANT: this parameter value is ignored when p is an array)
+
+
+  if (Array.isArray(p))
+  {
+    let out = [];
+    
+    for (let i=0; i<p.length; i++)
+    {
+      let out_i = 0;
+      let U = runif(N);
+      for (let j=0; j<N; j++) out_i += U[j] <= p[i] ? 1 : 0;
+      out.push(out_i);      
+    }
+    
+    return out;    
+  }
+  else
+  {
+    // p is a number
+    
+    if (len == 1)
+    {
+      let out = 0;
+      let U = runif(N);
+      for (let i=0; i<N; i++) out += U[i] <= p ? 1 : 0;
+      
+      return out;
+    }
+    else
+    {
+      // len > 1
+      let out = [];
+      
+      for (let i=0; i<len; i++)
+      {
+        let out_i = 0;
+        let U = runif(N);
+        for (let j=0; j<N; j++) out_i += U[j] <= p ? 1 : 0;
+        out.push(out_i);      
+      }
+      
+      return out;
+    }
+  }
+} // end of rbinom
+
+
+// ICI cette fct ne fait pas ce que j'attendais
 //ResetSeed = function()
 //{
 //  var seed = new Date().getTime();
@@ -355,129 +504,191 @@ rnorm = function(size, mean=0, sd=1)
 } // end of rnorm
 
 
-Array.prototype.rnorm_gt = function(mean, sd)
+rnorm_gt = function(mean, sd, gt)
 {
-  // mean & sd: scalar
+  // mean & sd: scalars
+  // gt: array or number
   
-  var z = [];
+  var gt_is_array = Array.isArray(gt);
+  if (!gt_is_array) gt = [gt];
   
-  for (let i=0; i<this.length; i++)
-  {
-    let x = zO.rNormLeftCensored(mean, sd, this[i]);
-    z.push(x);
-  }
-  
-  return z;
-} // end of rnorm_gt
-
-
-rnorm_interval = function(mean, sd, gt, lt)
-{
   var z = [];
   
   for (let i=0; i<gt.length; i++)
   {
-    let x = zO.rNormIntervalCensored(mean, sd, gt[i], lt[i]);
+    let a = zygotine.S.normal.cdf(gt[i], mean, sd, false, true); // pnorm[log] - upper tail
+    let u = runif(1);
+    let logp = a + Math.log(u);
+    let x = qnorm(logp, mean, sd, false, true);
     z.push(x);
   }
   
-  return z;
-} // end of rnorm_interval
+  if (gt_is_array) return z;
+  else             return z[0];
+} // end of rnorm_gt
 
 
-Array.prototype.rnorm_lt = function(mean, sd)
+
+rnorm_interval = function(mean, sd, gt, lt)
 {
-  // mean & sd: scalar
+  // mean & sd: scalars
+  // gt & lt: either a) two arrays of same length 
+  //              or b) two numbers
+  
+  var lt_is_array = Array.isArray(lt);
+  if (!lt_is_array) lt = [lt], gt = [gt];
   
   var z = [];
   
-  for (let i=0; i<this.length; i++)
+  for (let i=0; i<lt.length; i++)
   {
-    let x = zO.rNormRightCensored(mean, sd, this[i]);
+    let lower_tail = gt[i] < mean;
+    
+    if (lower_tail)
+    {
+      a = zygotine.S.normal.cdf(gt[i], mean, sd, true, true); // pnorm[log]
+      b = zygotine.S.normal.cdf(lt[i], mean, sd, true, true);
+    }
+    else
+    {
+      a = zygotine.S.normal.cdf(lt[i], mean, sd, false, true);
+      b = zygotine.S.normal.cdf(gt[i], mean, sd, false, true);
+    }
+  
+  
+    let u = runif(1);
+    let logp = b + Math.log(1 - u*(1 - Math.exp(a-b)));
+    let x = qnorm(logp, mean, sd, lower_tail, true);
     z.push(x);
   }
   
-  return z;
+  if (lt_is_array) return z;
+  else             return z[0];
+} // end of rnorm_interval
+
+
+rnorm_lt = function(mean, sd, lt)
+{
+  // mean & sd: scalars
+  // lt: array or number
+  
+  var lt_is_array = Array.isArray(lt);
+  if (!lt_is_array) lt = [lt];
+  
+  var z = [];
+  
+  for (let i=0; i<lt.length; i++)
+  {
+    let a = zygotine.S.normal.cdf(lt[i], mean, sd, true, true); // pnorm[log]
+    let u = runif(1);
+    let logp = a + Math.log(u);
+    let x = qnorm(logp, mean, sd, true, true);
+    z.push(x);
+  }
+  
+  if (lt_is_array) return z;
+  else             return z[0];
 } // end of rnorm_lt
 
 
-runif = function(size, min, max)
+runif = function(size, min=0, max=1)
 {
   // size: integer
   // min: Number or array of length = size
   // max: Number or array of length = size
   
   if (size == 1)
-  {
-    if (typeof min === 'undefined') min = 0.0;
-    if (typeof max === 'undefined') max = 1.0;
-    
+  {    
     return zS.uniform.sample(1, min, max);
+  }
+  else if (typeof min == 'number' && typeof max == 'number')
+  {
+    return zS.uniform.sample(size, min, max);
   }
   else
   {
-    // Fct is called to generate more than one random value => min & max should be (or converted to) arrays
+    // Fct is called to generate more than one random value
+    // and at least one of min & max is an array
     
-    let u = [];
-  
-    let a = as_array(min, 0, size); // defaults to rep(0, size) [in R notation]
-    let b = as_array(max, 1, size); // defaults to rep(1, size) [in R notation]
+    var u = [],
+        m, M; // min & max
+        
+    if (!Array.isArray(min)) m = min;
+    if (!Array.isArray(max)) M = max;
     
-    for (let i=0; i<size; i++) u.push(zS.uniform.sample(1, a[i], b[i]));
+    for (let i=0; i<size; i++)
+    {
+      if (Array.isArray(min)) m = min[i];
+      if (Array.isArray(max)) M = max[i];
+       
+      u.push(zS.uniform.sample(1, m, M));
+    }
+    
     return u;
   }
 } // end of runif
 
 
-Array.prototype.sample_discrete = function(p, log_p=false)
+sample_discrete = function(values_list, p, log_p=false)
 {
-  // this & p: two arrays of same length
-  // Sample a value from 'this' with corresponding weights found in p
+  // values_list & p: two arrays of same length
+  // Sample a value from 'values_list' with corresponding weights found in p
   
   var sample_discrete;
   
   if (log_p)
   {
-    let p_max = p.max();
+    let p_max = max(p);
     p = p.map(p => p - p_max).map(Math.exp);    
   }
 
-  var p_sum = p.sum();
+  var p_sum = sum(p);
   p = p.map(p => p/p_sum);  // standardize (make them sum to 1)
   
   var U = runif(1);
   
-  for (let i=0; i<this.length; i++)
+  for (let i=0; i<values_list.length; i++)
   {
     if (U <= p[i])
     {
-      sample_discrete = this[i];
+      sample_discrete = values_list[i];
       break;
     }
     
     U -= p[i];
   }
   
-  if (typeof sample_discrete == 'undefined') sample_discrete = this[this.length-1]; // to prevent numeric imprecision
+  if (typeof sample_discrete == 'undefined') sample_discrete = values_list[values_list.length-1]; // to prevent numeric imprecision
   
   return sample_discrete;
-} // end of Array.sample_discrete
+} // end of sample_discrete
 
 
-Array.prototype.varphi = function()
-{
-  // this: array
+varphi = function(arr)
+{  
+  var log_phi = phi(arr, true);
+  var log_Phi = Phi(arr, 0, 1, true, true);
   
-  var log_phi = this.phi(true);
-  var log_Phi = this.Phi(0, 1, true, true);
+  var vphi       = substract(log_phi, log_Phi).map(Math.exp);
+  var vphi_prime = vphi.map((v,i) => -(arr[i]*v + v**2));
   
-  var vphi       = log_phi.minus(log_Phi).map(Math.exp);
-  var vphi_prime = this.times(vphi).plus(vphi.sq()).times(-1);
-  
-  var varphi = {f: vphi, fp: vphi_prime};
-  
-  return varphi;
-} // end of Array.varphi
+  return {f: vphi, fp: vphi_prime};
+} // end of varphi
+
+
+// Deprecated
+//logPhiInterval = function(a, b, mean, sd)
+//{
+//  // a, b, mean, sd: all Numbers
+//  // Return log(pnorm(b, mean, sd) - pnorm(a, mean, sd)), in R notation
+//    
+//  var logp1 = as_log(Phi([a], mean, sd, true, true),    true, -1);
+//  var logp2 = as_log(Phi([b], mean, sd, true, true),    true);
+//  
+//  log_pdiff = logp2.plus(logp1);
+//  
+//  return log_pdiff.x[0];
+//} // end of logPhiInterval
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -488,7 +699,7 @@ Array.prototype.varphi = function()
 
   // The function g (see logf_beta.prototype below) can be given (it is optional)
   // in case exp(logf) would lead to NaN when calculing cdf: indeed, if we take the case
-  // the Beta distribution, logf(x) = NaN for x = 0 when alpha = 1 
+  // of the Beta distribution, logf(x) = NaN for x = 0 when alpha = 1 
   // as (alpha-1)*log(x) = 0 * log(0) = NaN, and so does exp(logf(0)). However, in the *real*
   // distribution function x**(alpha-1) = 0**0 is well defined (and = 1); in order to
   // go around that computational problem, one provides g [which could have been called "alternate f"]
@@ -503,10 +714,10 @@ logf_beta = function(alpha, beta)
   this.domain = [0, 1];
   this.label = 'Beta distrn';
   
-    mode = this.mode();
+    //this.mode = this.mode();
     this.g_compute = this.use_g();
-    this.compute_M(mode);
-    this.total_area = this.area();
+    //this.compute_M(mode);
+    //this.total_area = this.area();
 } // end of logf_beta
 
 
@@ -523,9 +734,12 @@ logf_beta.prototype =
 
 logf_lnorm = function(mean, sd) 
 {
-  this.mean = mean;
-  this.prec = 1/sd**2;
-  this.label = 'logNormal distrn';
+  this.mean   = mean;
+  this.sd     = sd;
+  this.sd2    = sd**2;
+  this.prec   = 1/sd**2;
+  this.label  = 'logNormal distrn';
+  this.domain = [0, Infinity];
 } // end of logf_lnorm
 
 
@@ -533,15 +747,19 @@ logf_lnorm.prototype =
 {
   logf:        function(x){return -Math.log(x) - this.prec/2 * (Math.log(x) - this.mean)**2},
   logf_prime:  function(x){return - (this.prec * (Math.log(x) - this.mean) + 1) / x},
-  logf_second: function(x){return - (this.prec * (this.mean + 1 - Math.log(x)) - 1) / x**2}
+  logf_second: function(x){return - (this.prec * (this.mean + 1 - Math.log(x)) - 1) / x**2},
+  mode:        function(){return Math.exp(this.mean-this.sd2)},
+  quantile:    function(p){return Math.exp(qnorm(p, this.mean, this.sd))}
 } // end of logf_lnorm
 
 
 logf_norm = function(mean, sd) 
 {
-  this.mean = mean;
-  this.prec = 1/sd**2;
-  this.label = 'Normal distrn';
+  this.mean   = mean;
+  this.sd     = sd;
+  this.prec   = 1/sd**2;
+  this.label  = 'Normal distrn';
+  this.domain = [-Infinity, Infinity];
 } // end of logf_norm
 
 
@@ -549,11 +767,19 @@ logf_norm.prototype =
 {
   logf:        function(x){return -this.prec/2 * (x-this.mean)**2},
   logf_prime:  function(x){return -this.prec * (x - this.mean)},
-  logf_second: function(x){return -this.prec}
+  logf_second: function(x){return -this.prec},
+  mode:        function(){return this.mean},
+  quantile:    function(p){return qnorm(p, this.mean, this.sd)}
 } // end of logf_norm.prototype
 
 
-logf_unif = function(){}; // end of logf_unif
+logf_unif = function(lower, upper)
+{
+  if (typeof lower == 'undefined') lower = -Infinity;
+  if (typeof upper == 'undefined') upper =  Infinity;
+  
+  this.domain = [lower, upper];
+}; // end of logf_unif
 
 
 logf_unif.prototype =
@@ -564,28 +790,27 @@ logf_unif.prototype =
 } // end of logf_unif.prototype
 
 
-
-// _______________________________________________________________________________
-//
-// ___ Used in Between-Worker ____________________________________________________
-//
-// Save the functions below as they are still used by the Between-Worker algorithm
-// (as well as riskband)
-// but new versions are available above for new uses
+////////////////////////////////////////////////////////////////////////////////
+// Defining Density Functions
 
 
-logPhiInterval = function(a, b, mean, sd)
+function BetaDensity(alpha, beta)
 {
-  // a, b, mean, sd: all Numbers
-  // Return log(pnorm(b, mean, sd) - pnorm(a, mean, sd)), in R notation
-  
-  var logp1 = {x: [], s: [1]},
-      logp2 = {x: [], s: [1]};
-      
-  logp1.x = [a].Phi(mean, sd, true, true);
-  logp2.x = [b].Phi(mean, sd, true, true);
-  
-  log_pdiff = logp2.minus_log(logp1);
-  
-  return log_pdiff.x[0];
-} // end of logPhiInterval
+  var Beta = Object.create(DensityFct);
+    var f = new logf_beta(alpha, beta);
+    Beta.alpha  = f.alpha;
+    Beta.beta   = f.beta;
+    Beta.mode   = f.mode;
+    
+    Beta.g_compute = f.g_compute; 
+    Beta.g         = f.g;
+    
+    Beta.logf        = f.logf;
+    Beta.logf_prime  = f.logf_prime;
+    Beta.logf_second = f.logf_second;
+    
+    Beta.domain = f.domain;
+    Beta.label  = f.label;
+    
+  return Beta;
+} // 

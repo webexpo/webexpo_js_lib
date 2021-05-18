@@ -1,14 +1,52 @@
 // =============================================================================
 // Code written to calculate Initial Values for the Between-Worker model
-// using the MAP (Maximum Posterior Estimate) as initial values                                                              
-                                                        
-// Version 0.2 (Feb 2021) 
-// [based on inits-BetweenWorker.R version 0.25]                            
+// using the MAP (Maximum Posterior Estimate) as initial values 
+// [based on inits-BetweenWorker.R version 0.25]                                                             
+//
+// Author: Patrick Bélisle                                                
+//                              
+// Version 0.4 (May 2021)
+// [distributed]
 
-// -----------------------------------------------------------------------------
-// PB, Feb 2021
 
 // Change Log
+// =============================================================================
+//
+//
+// Version 0.4 (May 2021)
+// ----------------------
+//   The following fct calls were modified (as they are not defined through Array.prototype anymore):
+//     - allTheSame [renamed all_the_same]
+//     - divided_by [renamed ratio]
+//     - mean
+//     - sqSum
+//
+//   Using built-in .some() rather than home-made .any_* in a few occurences.
+//
+//   Locally-defined functions dlogPhi_dsigma & d2logPhi_dsigma2 were dropped
+//   in favor of dklogPhi_dsigmak defined in derivatives.js (with different parametrization than that of previous local versions)
+//
+//   The Jacobian in the Newton-Raphson algorithm is now defined through MyMatrix
+//
+//   Slightly modified MAP_Inits to give sensible results when only one of the gt/lt endpoints is available
+//     (in addition to at least one 'y' data point)
+//
+//   Changes (& correction!) in the function dl_dsigmaw (renamed dl_dsigma2_fct)
+//
+//   Modified logN fct (added f property)
+//
+//   Added mu_prior & sw_prior as arguments to OneSubjectEstimates
+//
+//   Added the function ThisWorkerData (easying the rerun of individual parm estimates for subjects
+//    for which OneSubjectEstimates did not converge on first pass -- hoping for convergence the second time,
+//     using parms obtained from other workers/subjects)
+//
+//
+// Version 0.3 (Mar 2021)
+// ----------------------
+//   The name of a few functions called (from derivatives.js)
+//   were changed (for internal/library consistency)
+//
 //
 // Version 0.2 (Feb 2021)
 // ----------------------
@@ -16,16 +54,15 @@
 //   the previously embedded fct OneWorkerEstimates
 
          
-dl_dsigmaw = function(sigma_within, mu_worker, mu_overall, data, id, parms)
-{ 
+dl_dsigmaw_fct = function(sigma_within, mu_worker, mu_overall, data, id, parms)
+{
   var f  = - id.y.length / sigma_within,
       fp =   id.y.length / sigma_within**2; 
   
   
   if (id.y.length > 0)
   {
-    let mu_w = mu_worker.indexed(id.y); 
-    let tmp = data.y.minus(mu_w).minus(mu_overall).sqSum();
+    let tmp = sqSum(data.y.map((z, i) => z - mu_worker[id.y[i]] - mu_overall));
     
     f  +=     tmp / sigma_within**3;
     fp -= 3 * tmp / sigma_within**4;
@@ -33,29 +70,28 @@ dl_dsigmaw = function(sigma_within, mu_worker, mu_overall, data, id, parms)
   
   if (id.lt.length > 0)
   {
-    let mu_w = mu_worker.indexed(id.lt);
-    let tmp = data.lt.minus(mu_w).minus(mu_overall);
+    let mu_j = elements(mu_worker, id.lt).map(m => m + mu_overall);
+    let d = dklogPhi_dsigmak(data.lt, mu_j, sigma_within);
     
-    f  -=   dlogPhi_dsigma(tmp, sigma_within);
-    fp -= d2logPhi_dsigma2(tmp, sigma_within);
+    f  += d.order1;
+    fp += d.order2;
   }  
   
   if (id.gt.length > 0)
   {
-    let mu_w = mu_worker.indexed(id.gt);
-    let tmp = mu_w.plus(mu_overall).minus(data.gt);
+    let mu_j = elements(mu_worker, id.gt).map(m => m + mu_overall);
+    let d = dklogPhi_dsigmak(data.gt, mu_j, sigma_within, false);
     
-    f  -=   dlogPhi_dsigma(tmp, sigma_within);
-    fp -= d2logPhi_dsigma2(tmp, sigma_within);
+    f  += d.order1;
+    fp += d.order2;
   }
   
   if (id.interval.length > 0)
   {
-    let mu_w = mu_worker.indexed(id.interval);
-    let tmp = mu_w.plus(mu_overall);
+    let mu_j = elements(mu_worker, id.interval).map(m => m + mu_overall);
     
-    f  -= dlogPhiInt_dsigma(data.interval, tmp, sigma_within);
-    fp -=        d2logPhiInt_dmudsigma(data.interval, tmp, sigma_within);
+    f  +=   dlogPhiInterval_dsigma(data.interval, mu_j, sigma_within);
+    fp += d2logPhiInterval_dsigma2(data.interval, mu_j, sigma_within);
   }
 
 
@@ -63,73 +99,153 @@ dl_dsigmaw = function(sigma_within, mu_worker, mu_overall, data, id, parms)
   {
     let logn = logN(sigma_within, parms);
     
-    f  += logn.f;
-    fp += logn.fp;
+    f  += logn.fp;
+    fp += logn.fs;
   }
   
-
-  var dl_dsigmaw = {f: f, fp: fp};
   
-  return dl_dsigmaw;
-} // end of dl_dsigmaw
+  return {f: f, fp: fp};
+} // end of dl_dsigmaw_fct
+
+
+function dl_dtheta_fct(theta, i, data, id, parms, epsilon=1e-6)
+{
+  // This function was written for validation ends only
+  // -- it approximates the first derivatives of log posterior
+  
+  let f1 = log_posterior(theta, data, id, parms);
+  theta[i] += epsilon;
+  let f2 = log_posterior(theta, data, id, parms);
+  let fp = (f2 - f1) / epsilon;
+  
+  return fp;
+} // end of dl_dtheta_fct
+
+
+function d2l_dtheta1dtheta2(theta, i, j, data, id, parms, epsilon=1e-5)
+{
+  let f1a = log_posterior(theta, data, id, parms);
+  theta[i] += epsilon;
+  let f1b = log_posterior(theta, data, id, parms);
+  let fp1 = (f1b - f1a) / epsilon;
+  
+  theta[i] -= epsilon;
+  theta[j] += epsilon;
+  
+  let f2a = log_posterior(theta, data, id, parms);
+  theta[i] += epsilon;
+  let f2b = log_posterior(theta, data, id, parms);
+  let fp2 = (f2b - f2a) / epsilon;
+  
+  let fs = (fp2 - fp1) / epsilon;
+  return fs;
+} // end of d2l_dtheta1dtheta2
+
+
+function d2l_dtheta2(theta, i, data, id, parms, epsilon=1e-5)
+{
+  // This function was written for validation ends only
+  // -- it approximates the first derivatives of log posterior
+  
+  let f1 = log_posterior(theta, data, id, parms);
+  theta[i] += epsilon;
+  let f2 = log_posterior(theta, data, id, parms);
+  theta[i] += epsilon;
+  let f3 = log_posterior(theta, data, id, parms);
+  
+  let fp1 = (f2 - f1) / epsilon;
+  let fp2 = (f3 - f2) / epsilon;
+  
+  let fs = (fp2 - fp1) / epsilon;
+  
+  return fs;
+} // end of d2l_dtheta2
 
 
 function f12(mu_worker, mu_overall, sigma_within, sigma_between, count, y_sum, data, id)
-{
-  var tmp = mu_worker.plus(mu_overall).times(count.y);
-      tmp = y_sum.minus(tmp);                             // array of length #workers
+{   
+  var tmp = y_sum.map((s, i) => s - count.y[i] * (mu_worker[i] + mu_overall));  // array of length #workers
       
-  var f1 = tmp.divided_by(sigma_within**2);               // arrays of length #workers
-  var df1_dmui = count.y.map(u => -u /sigma_within**2); 
-  var df1_dsigmaw = tmp.map(u => -2*u / sigma_within**3);
+      
+  var dl_dmui = tmp.map(m => m / sigma_within**2);              // arrays of length #workers
+  var d2l_dmui2 = count.y.map(u => -u /sigma_within**2); 
+  var d2l_dmuidsigmaw = tmp.map(u => -2*u / sigma_within**3);
   
-
-  for (let i=0; i<mu_worker.length; i++)
+  
+  if (data.lt.length > 0)
   {
-    let my_mu = mu_worker[i] + mu_overall;
+    let mu_j = elements(mu_worker, id.lt).map(m => m + mu_overall);
     
-    if (count.lt[i] > 0)
-    {
-      let lt = data.lt.filter((e,index) => id.lt[index]===i).minus(my_mu);
-      
-      f1[i]          -=        dlogPhi_dmu(lt, sigma_within);
-      df1_dmui[i]    -=      d2logPhi_dmu2(lt, sigma_within);
-      df1_dsigmaw[i] -= d2logPhi_dmudsigma(lt, sigma_within);
-    }
+    let tmp   =      dklogPhi_dmuk(data.lt, mu_j, sigma_within, true, false)
+    let mixed = d2logPhi_dmudsigma(data.lt, mu_j, sigma_within, true, false);
     
-    if (count.gt[i] > 0)
+    for (let i=0; i<data.lt.length; i++)
     {
-      let gt = data.gt.filter((e,index) => id.gt[index]===i).minus(my_mu).times(-1);
+      let j = id.lt[i];
       
-      f1[i]          +=        dlogPhi_dmu(gt, sigma_within);
-      df1_dmui[i]    +=      d2logPhi_dmu2(gt, sigma_within, 1);
-      df1_dsigmaw[i] += d2logPhi_dmudsigma(gt, sigma_within);
+      dl_dmui[j]         += tmp.order1[i];
+      d2l_dmui2[j]       += tmp.order2[i];
+      d2l_dmuidsigmaw[j] += mixed[i];
     }
-    
-    if (count.interval[i] > 0)
-    {
-      let gt = data.interval.gt.filter((e,index) => id.interval[index]===i),
-          lt = data.interval.lt.filter((e,index) => id.interval[index]===i);     
-      let my_interval = {gt: gt, lt: lt};
-      
-      f1[i]          -=        dlogPhiInt_dmu(my_interval, my_mu, sigma_within);
-      df1_dmui[i]    -=      d2logPhiInt_dmu2(my_interval, my_mu, sigma_within);
-      df1_dsigmaw[i] -= d2logPhiInt_dmudsigma(my_interval, my_mu, sigma_within);
-    }
-  } 
+  }
   
   
-  var df1_dmu = df1_dmui.slice();
-  var f2 = f1.sum();
-  var df2_dmu = df1_dmui.sum();
-  var df2_dsigmaw = df1_dsigmaw.sum();
+  if (data.gt.length > 0)
+  {
+    let mu_j = elements(mu_worker, id.gt).map(m => m + mu_overall);
+    
+    let tmp   =      dklogPhi_dmuk(data.gt, mu_j, sigma_within, false, false);
+    let mixed = d2logPhi_dmudsigma(data.gt, mu_j, sigma_within, false, false);
+    
+    for (let i=0; i<data.gt.length; i++)
+    {
+      let j = id.gt[i];
+      
+      dl_dmui[j]         += tmp.order1[i];
+      d2l_dmui2[j]       += tmp.order2[i];
+      d2l_dmuidsigmaw[j] += mixed[i];
+    }
+  }
+  
+  
+  if (data.interval.gt.length > 0)
+  {
+    let mu_j = elements(mu_worker, id.interval).map(m => m + mu_overall);
+    
+    let d1 = dlogPhiInterval_dmu(data.interval, mu_j, sigma_within, false);
+    let d2 = d2logPhiInterval_dmu2(data.interval, mu_j, sigma_within, false);
+    let mixed = d2logPhiInterval_dmudsigma(data.interval, mu_j, sigma_within, false);
+       
+    
+    for (let i=0; i<data.interval.gt.length; i++)
+    {
+      let j = id.interval[i];
+      
+      dl_dmui[j]         += d1[i];
+      d2l_dmui2[j]       += d2[i];
+      d2l_dmuidsigmaw[j] += mixed[i]; 
+    }     
+  }
+  
+  
+  var d2l_dmuidmu    = d2l_dmui2.slice();
+  var dl_dmu         = sum(dl_dmui);
+  var d2l_dmu2       = sum(d2l_dmui2);
+  var d2l_dmudsigmaw = sum(d2l_dmuidsigmaw);
         
-  f1 = f1.minus(mu_worker.divided_by(sigma_between**2));
-  df1_dmui = df1_dmui.minus(1/sigma_between**2); 
+  dl_dmui = substract(dl_dmui, mu_worker.map(m => m/sigma_between**2));
+  d2l_dmui2 = d2l_dmui2.map(d => d - 1/sigma_between**2); 
   
   
-  var f12 = {f1: f1, df1_dmui: df1_dmui, df1_dmu: df1_dmu, df1_dsigmaw: df1_dsigmaw,
-             f2: f2, df2_dmu: df2_dmu, df2_dsigmaw: df2_dsigmaw};
+  var f12 = {dl_dmui: dl_dmui,
+             dl_dmu: dl_dmu,
+              
+             d2l_dmui2: d2l_dmui2, 
+             d2l_dmuidmu: d2l_dmuidmu,
+             d2l_dmuidsigmaw: d2l_dmuidsigmaw,
+              
+             d2l_dmu2: d2l_dmu2,
+             d2l_dmudsigmaw: d2l_dmudsigmaw};
   
   return f12;
 } // end of f12
@@ -138,13 +254,152 @@ function f12(mu_worker, mu_overall, sigma_within, sigma_between, count, y_sum, d
 function logN(sigma, m)
 {
   var log_sigma = Math.log(sigma);
-  var f = -1/sigma * (1 + m.logSigmaWithinPrec * (log_sigma - m.logSigmaWithinMu));
-  var fp = (1 - m.logSigmaWithinPrec * (m.logSigmaWithinMu + 1 - log_sigma)) / sigma**2;
   
-  var logN = {f: f, fp: fp};
+  var f  =  - log_sigma - m.logSigmaWithinPrec/2 * (log_sigma - m.logSigmaWithinMu)**2;
+  var fp = -1/sigma * (1 + m.logSigmaWithinPrec  * (log_sigma - m.logSigmaWithinMu));
+  var fs = (1 - m.logSigmaWithinPrec * (m.logSigmaWithinMu + 1 - log_sigma)) / sigma**2;
+  
+  var logN = {f: f, fp: fp, fs: fs};
   
   return logN;
 } // end of logN
+
+
+function log_posterior(theta, data, id, parms)
+{
+  // function used only to validate intermediate results
+  
+  // theta = [mu_worker, mu_overall, sw, sb]
+  
+  let my_theta = theta.slice();
+  
+  let sb = my_theta.pop();
+  let sw = my_theta.pop();
+  let mu_overall = my_theta.pop();
+  let mu_worker  = my_theta.slice();
+  let n_workers = mu_worker.length;  
+  
+  var logf = 0;
+  
+  
+ if (data.y.length > 0)
+  {
+    logf -= data.y.length * Math.log(sw);
+    
+    let mu_j = elements(mu_worker, id.y).map(m => m + mu_overall);
+    
+    let beta = 0;
+    for (let i=0; i<data.y.length; i++) beta += (data.y[i] - mu_j[i])**2;
+    
+    logf -= beta / 2 / sw**2;
+  }
+  
+  
+  if (data.lt.length > 0)
+  {
+    let mu_j = elements(mu_worker, id.lt).map(m => m + mu_overall);
+    logf += sum(Phi(data.lt, mu_j, sw, true, true)) 
+  }
+  
+  
+  if (data.gt.length > 0)
+  {
+    let mu_j = elements(mu_worker, id.gt).map(m => m + mu_overall);
+    logf += sum(Phi(data.gt, mu_j, sw, false, true));
+  }
+  
+  
+  if (data.interval.gt.length > 0)
+  {
+    let mu_j = elements(mu_worker, id.interval).map(m => m + mu_overall);
+    logf += sum(PhiInterval(data.interval, mu_j, sw, true));
+  }  
+  
+  // prior on mu_worker
+  
+  logf += - 1/2 * sum(mu_worker.map(m => m**2))/sb**2 - n_workers * Math.log(sb);
+  
+  // prior on sigma_within & sigma_between
+
+  if (!parms.uupOnSds)
+  {
+    let log_sw = Math.log(sw);
+    logf += - log_sw - parms.logSigmaWithinPrec/2 * (log_sw - parms.logSigmaWithinMu)**2;
+    
+    let log_sb = Math.log(sb);
+    logf += - log_sb - parms.logSigmaBetweenPrec/2 * (log_sb - parms.logSigmaBetweenMu)**2;
+  }  
+  
+  
+  return logf;
+} // end of log_posterior
+
+
+function optimal_sigma_between(mu_worker, parms, max_niter=100, epsilon=1e-5)
+{
+  var n = mu_worker.length;
+  var beta = sum(mu_worker.map(m => m**2));
+  var sb = Math.sqrt(beta/n); // starting value
+  
+  var cont = true,
+      iter = 0;
+
+  
+  while (cont)
+  {
+    log_sb = Math.log(sb);
+  
+    fp =     beta/sb**3 - 1/sb * (n + 1 + parms.logSigmaBetweenPrec * (log_sb - parms.logSigmaBetweenMu));
+    fs = - 3*beta/sb**4 + (n + 1 - parms.logSigmaBetweenPrec * (parms.logSigmaBetweenMu + 1 - log_sb)) / sb**2;
+
+    change = fp / fs;
+    sb -= change;
+
+    
+    if (sb < 0) sb = (sb + change) / 2;
+  
+    let converged = Math.abs(change) < epsilon;
+    cont = !converged && ++iter < max_niter;    
+  }
+  
+  if (!converged) sb =  Math.sqrt(beta/n);
+  
+  return {converged: converged, sigma_between: sb};
+} // end of optimal_sigma_between
+
+
+function optimal_sigma_within(sigma_within, mu_worker, mu_overall, data, id, parms, max_niter=100, epsilon=1e-5)
+{
+  var cont = true,
+      iter = 0;
+  
+  
+  while (cont)
+  {
+    let previous_sw = sigma_within;
+    let tmp = dl_dsigmaw_fct(sigma_within, mu_worker, mu_overall, data, id, parms);
+    
+    var fp = tmp.f;
+    var fs = tmp.fp;
+    
+    var change = - fp / Math.abs(fs);
+    sigma_within -= change;
+    
+    if (parms.uupOnSds)
+    {
+      if      (sigma_within > parms.sigmaWithinRange[1]) sigma_within = (parms.sigmaWithinRange[1] + sigma_within + change) / 2;
+      else if (sigma_within < parms.sigmaWithinRange[0]) sigma_within = (parms.sigmaWithinRange[0] + sigma_within + change) / 2;
+    }
+    else if (sigma_within < 0) sigma_within = previous_sw / 2;
+    
+    
+    converged = Math.abs(sigma_within - previous_sw) < epsilon;
+    cont = !converged && ++iter < max_niter;
+  }
+
+
+  return {converged: converged, sigma_within: sigma_within};
+} // end of optimal_sigma_within
 
 
 function sigma_within_RespectingRange(sigma_within, sp, previous_sigma_within)
@@ -184,24 +439,98 @@ function sigma_within_RespectingRange(sigma_within, sp, previous_sigma_within)
 }  // end of sigma_within_RespectingRange
 
 
+function sigma_within_fullcond_log(sw, mu_worker, mu_overall, data, id, sp)
+{
+  // this fct was written only for investigation
+  var logf = 0;
+  
+  if (data.y.length > 0)
+  {
+    logf -= data.y.length * Math.log(sw);
+    
+    let mu_j = elements(mu_worker, id.y).map(m => m + mu_overall);
+    
+    let beta = 0;
+    for (let i=0; i<data.y.length; i++) beta += (data.y[i] - mu_j[i])**2;
+    
+    logf -= beta / 2 / sw**2;
+  }
+  
+  
+  if (data.lt.length > 0)
+  {
+    let mu_j = elements(mu_worker, id.lt).map(m => m + mu_overall);
+    logf += sum(Phi(data.lt, mu_j, sw, true, true)) 
+  }
+  
+  
+  if (data.gt.length > 0)
+  {
+    let mu_j = elements(mu_worker, id.gt).map(m => m + mu_overall);
+    logf += sum(Phi(data.gt, mu_j, sw, false, true));
+  }
+  
+  
+  if (data.interval.gt.length > 0)
+  {
+    let mu_j = elements(mu_worker, id.interval).map(m => m + mu_overall);
+    logf += sum(PhiInterval(data.interval, mu_j, sw, true));
+  }
+  
+  
+  // Add prior
+  logf += logN(sw, sp).f;
+  
+  return round(logf, 2);
+} // end of sigma_within_fullcond_log
+
+
+function ThisWorkerData(obj)
+{
+  var my_data = {y: [], lt: [], gt: [], interval: {gt: [], lt: []}};
+    
+  my_data.y  = obj.filter(m => m.type === "uncensored").map(m => m.a);
+  my_data.lt = obj.filter(m => m.type === "lessThan").map(m => m.a);
+  my_data.gt = obj.filter(m => m.type === "greaterThan").map(m => m.a);
+    
+  my_data.interval.obj = obj.filter(m => m.type === "interval").map(m => m.a);
+  my_data.interval.obj = obj.filter(m => m.type === "interval").map(m => m.b);
+    
+  return my_data;
+} // end of ThisWorkerData
+
 
 ////////////////////////////////////////////////////////////////////////////////
+
 
 function MAP_Inits(wd, sp, epsilon=1e-6) 
 {
   // Find the Maximum A Posteriori (MAP) Estimator 
   //   and use it as initial values for the Between-Workers algorithm
+  
+  // console.clear();
 
   
   var workers = wd.workerIds;       
-
-  var sigmaBetweenRange = {l : 0, u : Infinity};
-  var sigmaWithinRange  = {l : 0, u : Infinity};
+  
+  var mu_prior = new logf_unif(),
+      sw_prior;
+  
+  var domain = {mu: [sp.muOverallLower, sp.muOverallUpper], sigma: [0, Infinity]}; 
+  var theta_start = {mu: (sp.muOverallLower + sp.muOverallUpper) / 2};
+      
          
   if (sp.uupOnSds)
+  {    
+    domain.sigma = [sp.sigmaWithinRange[0], sp.sigmaWithinRange[1]];
+    theta_start.sigma = (sp.sigmaWithinRange[0] + sp.sigmaWithinRange[1]) / 2;
+    
+    sw_prior = new logf_unif();
+  }
+  else
   {
-    sigmaBetweenRange = {l : sp.sigmaBetweenRange[0], u : sp.sigmaBetweenRange[1]};
-    sigmaWithinRange  = {l : sp.sigmaWithinRange[0],  u : sp.sigmaWithinRange[1]};
+    sw_prior = new logf_lnorm(sp.logSigmaWithinMu, 1/Math.sqrt(sp.logSigmaWithinPrec)); 
+    theta_start.sigma = sw_prior.mode();
   }
 
 
@@ -217,20 +546,12 @@ function MAP_Inits(wd, sp, epsilon=1e-6)
   for (let i = 0; i < workers.length; i++) 
   {
     var worker = workers[i];
-
-    var wk = wd._measureByWorker[worker];
+    var wk = wd._measureByWorker[worker];    
+    var this_worker_data = ThisWorkerData(wk);
     
-    var this_worker_data = {y: [], lt: [], gt: [], interval: {gt: [], lt: []}};
-    
-    this_worker_data.y  = wk.filter(m => m.type === "uncensored").map(m => m.a);
-    this_worker_data.lt = wk.filter(m => m.type === "lessThan").map(m => m.a);
-    this_worker_data.gt = wk.filter(m => m.type === "greaterThan").map(m => m.a);
-    
-    this_worker_data.interval.gt = wk.filter(m => m.type === "interval").map(m => m.a);
-    this_worker_data.interval.lt = wk.filter(m => m.type === "interval").map(m => m.b);
      
     count.y.push(this_worker_data.y.length);
-    y_sum.push(this_worker_data.y.sum());
+    y_sum.push(sum(this_worker_data.y));
             
     count.gt.push(this_worker_data.gt.length); 
     count.lt.push(this_worker_data.lt.length);
@@ -245,13 +566,14 @@ function MAP_Inits(wd, sp, epsilon=1e-6)
       data.interval.gt = data.interval.gt.concat(this_worker_data.interval.gt);
       data.interval.lt = data.interval.lt.concat(this_worker_data.interval.lt);
       
-      id.y  = id.y.concat([i].rep(this_worker_data.y.length));
-      id.lt = id.lt.concat([i].rep(this_worker_data.lt.length));
-      id.gt = id.gt.concat([i].rep(this_worker_data.gt.length));
-      id.interval = id.interval.concat([i].rep(this_worker_data.interval.gt.length));
+      id.y  = id.y.concat(rep(i, this_worker_data.y.length));
+      id.lt = id.lt.concat(rep(i, this_worker_data.lt.length));
+      id.gt = id.gt.concat(rep(i, this_worker_data.gt.length));
+      id.interval = id.interval.concat(rep(i, this_worker_data.interval.gt.length));
       
                   
-    var estimable_parms = this_worker_data.y.length > 1 || this_worker_data.interval.gt.length > 0 || (this_worker_data.gt.length > 0 && this_worker_data.lt.length > 0); // for this worker        
+    var estimable_parms = this_worker_data.y.length > 1 || this_worker_data.interval.gt.length > 0 || (this_worker_data.gt.length > 0 && this_worker_data.lt.length > 0); // for this worker 
+    estimable_parms = true; // we want to *at least* try to get estimates for each worker       
             
     if (estimable_parms)
     {
@@ -268,38 +590,89 @@ function MAP_Inits(wd, sp, epsilon=1e-6)
       }
       else
       {
-        run_1WorkerEstimate = !this_worker_data.y.allTheSame();
+        run_1WorkerEstimate = !all_the_same(this_worker_data.y);
       }
+      
+      run_1WorkerEstimate = true; // force estimation for each worker
               
     
       if (!run_1WorkerEstimate && this_worker_data.y.length > 0)
       {
-        ybar = this_worker_data.y.mean();
+        ybar = mean(this_worker_data.y);
         
         concatenated_l = this_worker_data.gt.concat(this_worker_data.interval.gt);
         concatenated_u = this_worker_data.lt.concat(this_worker_data.interval.lt);
 
-        if (concatenated_l.length > 0)                         run_1WorkerEstimate = concatenated_l.any_gt(ybar);
-        if (!run_1WorkerEstimate && concatenated_u.length > 0) run_1WorkerEstimate = concatenated_u.any_lt(ybar);
+        run_1WorkerEstimate = concatenated_l.some(e => e > ybar);
+        if (!run_1WorkerEstimate) run_1WorkerEstimate = concatenated_u.some(e => e < ybar);
       }    
               
               
       if (!run_1WorkerEstimate)
       {
-        let l_median = concatenated_l.median();
-        let u_median = concatenated_u.median();
-                
-        thisWorkerEstimates.converged = true;
-        thisWorkerEstimates.mu = ybar;
-        thisWorkerEstimates.sigma = Math.abs(u_median - l_median) / 6;
+        thisWorkerEstimates.converged = false;
+        thisWorkerEstimates.mu = NaN;
+        
+        let l_median;
+        let u_median;
+        let n_criteria = 0;
+        
+        if (concatenated_l.length > 0)
+        {
+          n_criteria++;
+          l_median = median(concatenated_l);
+        }
+        
+        if (concatenated_u.length > 0)
+        {
+          n_criteria++;
+          u_median = median(concatenated_u);
+        }
+        
+        if (this_worker_data.y.length > 0)
+        {
+          n_criteria++;
+          thisWorkerEstimates.mu = ybar;
+          
+          if (n_criteria == 1 && !all_the_same(this_worker_data.y))
+          {
+            thisWorkerEstimates.converged = true;
+            thisWorkerEstimates.sigma = sd(this_worker_data.y); 
+          }
+        }
+        
+        
+        if (n_criteria > 1)
+        {
+          thisWorkerEstimates.converged = true;
+          
+          if (isNaN(thisWorkerEstimates.mu)) thisWorkerEstimates.mu = (l_median + u_median) / 2;
+          
+          if (concatenated_l.length > 0)
+          {
+            if (concatenated_u.length > 0)  thisWorkerEstimates.sigma = Math.abs(u_median - l_median) / 6;
+            else                            thisWorkerEstimates.sigma = Math.abs(ybar     - l_median) / 3; 
+          }
+          else
+          {
+            thisWorkerEstimates.sigma = Math.abs(u_median - ybar) / 3; 
+          }
+        }  
       }
       else
       {
-        let tmp = OneSubjectEstimates(this_worker_data);
+        if (individual_estimates.mu.length > 0)
+        {
+          theta_start.mu    = median(individual_estimates.mu);
+          theta_start.sigma = median(individual_estimates.sw);
+        }
+        
+
+        let tmp = OneSubjectEstimates(this_worker_data, mu_prior, sw_prior, domain, theta_start, false);
         
         thisWorkerEstimates.converged = tmp.converged;
         thisWorkerEstimates.mu        = tmp.mu;
-        thisWorkerEstimates.sigma     = tmp.sigma; 
+        thisWorkerEstimates.sigma     = tmp.sigma;
       }
       
       
@@ -317,27 +690,73 @@ function MAP_Inits(wd, sp, epsilon=1e-6)
     {
       availableIndividualEstimates.push(false);
     }          
+  } 
+  
+  
+  // Run OneSubjectEstimates again for workers for which first pass did not converge
+  // (in case the 'educated' starting values may help convergence in 2nd pass)
+  
+  any_converged = false;
+  all_converged = true;
+  
+  for (let i=0; i<availableIndividualEstimates.length; i++)
+  {
+    if (availableIndividualEstimates[i]) any_converged = true;
+    else all_converged = false; 
   }
-
+  
+  
+  if (!all_converged && any_converged)
+  {
+    let tmp_mu = individual_estimates.mu.slice();
+    let tmp_sw = individual_estimates.sw.slice();
+  
+    for (let i=0; i<availableIndividualEstimates.length; i++)
+    {
+      if (!availableIndividualEstimates[i])
+      {
+        var worker = workers[i];
+        var wk = wd._measureByWorker[worker];
+        var this_worker_data = ThisWorkerData(wk);
+        
+        let tmp = OneSubjectEstimates(this_worker_data, mu_prior, sw_prior, domain, theta_start, false);
+        
+        if (tmp.converged)
+        {
+          individual_estimates.mu.push(tmp.mu);
+          individual_estimates.sw.push(tmp.sigma);
+          individual_estimates.worker_index.push(i);
+          individual_estimates.worker.push(worker);
+          
+          theta_start.mu    = median(individual_estimates.mu);
+          theta_start.sigma = median(individual_estimates.sw);          
+        }
+      }
+    }
+  }
+  
 
   // From the above-obtained individual estimates, derive initial values for the *real thing* (also by Newton-Raphson)
   
-  var mu_overall    = individual_estimates.mu.mean();
-  var sigma_between = individual_estimates.mu.sd();
-  var sigma_within  = individual_estimates.sw.median();
   
-  var mu_worker_centered = individual_estimates.mu.minus(mu_overall);
-  var mu_worker = [];
-  var j = 0;
+  var mu_overall    =   mean(individual_estimates.mu);
+  var sigma_between =     sd(individual_estimates.mu);
+  var sigma_within  = median(individual_estimates.sw);
   
-  for (i=0; i<availableIndividualEstimates.length; i++)
+  //console.log("Indiv Estimates", individual_estimates);
+  //console.log("available Individual Estimates", availableIndividualEstimates);
+  
+  
+  var mu_worker_centered = individual_estimates.mu.map(m => m - mu_overall);
+  var mu_worker = rnorm(workers.length, 0, sigma_within);
+  
+  for (let j=0; j<individual_estimates.worker_index.length; j++)
   {
-    var worker_mean =  availableIndividualEstimates[i] ? mu_worker_centered[j++] : 0;
-    mu_worker.push(worker_mean);
+    let i = individual_estimates.worker_index[j];
+    mu_worker[i] = mu_worker_centered[j];
   }
-  
-   
-  
+    
+    
   // Run a univariate Newton-Raphson algorithm to find an initial value
   // for sigma_within, with fixed values for mu_overall & mu_worker
   // as calculated above
@@ -352,19 +771,28 @@ function MAP_Inits(wd, sp, epsilon=1e-6)
     let tmp = sigma_within_RespectingRange(sigma_within, sp);
     sigma_within = tmp.sigma_within;
   }
-
+  
 
   var converged = false;
+  var safer_sigma_within = sigma_within; // store a copy of current value in case the algorithm below does not converge
+  
 
   while (cont)
   {
-    let tmp = dl_dsigmaw(sigma_within, mu_worker, mu_overall, data, id, sp);       
-    var change = tmp.f / tmp.fp;
+    let tmp = dl_dsigmaw_fct(sigma_within, mu_worker, mu_overall, data, id, sp);       
+    var change = - tmp.f / Math.abs(tmp.fp);
 
     
     if (!isNaN(change))
     {
       sigma_within -= change;
+      
+      if (sigma_within < 0)
+      {
+        let previous_sw = sigma_within + change;
+        sigma_within = previous_sw / 2;
+        change = sigma_within - previous_sw;
+      }
     
       converged = Math.abs(change) < epsilon; 
       
@@ -387,7 +815,17 @@ function MAP_Inits(wd, sp, epsilon=1e-6)
       cont = false;
     }
   }
-    
+  
+
+  if (!converged) sigma_within = safer_sigma_within; 
+      
+      
+  // Take optimal sigma_within value (given other parm values fixed)
+  // to ease later convergence
+  
+  let tmp = optimal_sigma_within(sigma_within, mu_worker, mu_overall, data, id, sp);
+  if (tmp.convergence) sigma_within = tmp.sigma_within;
+
   
   // Make sure that sigma_within lies on
   // the right side of its optimal value (that is, shows a negative slope)
@@ -402,17 +840,19 @@ function MAP_Inits(wd, sp, epsilon=1e-6)
     
     sw_lower_limit = sp.sigmaWithinRange[0];
   }
-    
+      
 
   while (cont)
   {
-    let tmp = dl_dsigmaw(sigma_within, mu_worker, mu_overall, data, id, sp);
-    
+    let tmp = dl_dsigmaw_fct(sigma_within, mu_worker, mu_overall, data, id, sp);
     cont = tmp.fp > 0;
-    if (cont) sigma_within = (sigma_within + sw_lower_limit) / 2;
-  }
 
-  sigma_within = (sigma_within + sw_lower_limit) / 2;
+    if (cont) 
+    {
+      sigma_within = (sigma_within + sw_lower_limit) / 2;
+      if (Math.abs(sigma_within - sw_lower_limit) < epsilon) cont = false;
+    }
+  }
 
   
   // Newton-Raphson algorithm to find optimal theta
@@ -422,90 +862,80 @@ function MAP_Inits(wd, sp, epsilon=1e-6)
   var w = seq(mu_worker.length);
   
   
+  var J = create_matrix(1, 1); // not the true dimensions -- this is just to create the MyMatrix object
+  var J_bottom_left = create_matrix(1, workers.length);
+  
   cont = true;
   iter = 0;
+  
+  
+  if (sp.uupOnSds) sigma_between = sd(mu_worker);
+  else 
+  {
+    let tmp = optimal_sigma_between(mu_worker, sp);
     
+    if (tmp.converged) sigma_between = tmp.sigma_between;
+    else sigma_between = sd(mu_worker);
+  }
+  
     
   while (cont)
-  {
-    //  f1 = dl/dmu_i, i = 1, 2, ..., n.workers
-    //  f2 = dl/dmu 
+  {       
+    let tmp = optimal_sigma_within(sigma_within, mu_worker, mu_overall, data, id, sp);
+    if (tmp.converged) sigma_within = tmp.sigma_within; // else we keep last iteration result
     
-    let tmp = f12(mu_worker, mu_overall, sigma_within, sigma_between, count, y_sum, data, id);
+    // We do not optimize for sigma_between at this stage, as it would inevitably converge towards 0
+          
+    tmp = f12(mu_worker, mu_overall, sigma_within, sigma_between, count, y_sum, data, id);
     
-    var f1          = tmp.f1,
-        f2          = tmp.f2,
-        df1_dmui    = tmp.df1_dmui,
-        df1_dmu     = tmp.df1_dmu,
-        df1_dsigmaw = tmp.df1_dsigmaw,
-        f2          = tmp.f2,
-        df2_dmu     = tmp.df2_dmu,
-        df2_dsigmaw = tmp.df2_dsigmaw;
+    var dl_dmui         = tmp.dl_dmui,
+        dl_dmu          = tmp.dl_dmu,
+        d2l_dmui2       = tmp.d2l_dmui2,
+        d2l_dmu2        = tmp.d2l_dmu2,
+        d2l_dmuidmu     = tmp.d2l_dmuidmu;
+          
+//        d2l_dmuidsigmaw = tmp.d2l_dmuidsigmaw,
+//        d2l_dmudsigmaw  = tmp.d2l_dmudsigmaw;
+        
+
    
    
     // Start building Jacobian (J)
      
-    var J = df1_dmui.diag(); // matrix of dimension #workers x #workers (top left part of J)
+    J.m = diag(d2l_dmui2, false); // matrix of dimension #workers x #workers (top left part of J)
      
-    var J_bottom_left = Array(2).fill(0).map(x => Array(0).fill(0));
-    J_bottom_left[0] = df1_dmu;
-    J_bottom_left[1] = df1_dsigmaw;
+      J_bottom_left.m[0] = d2l_dmuidmu;  // matrix of dimensions 1 x #workers
+      
+      var J_top_right = J_bottom_left.transpose();
      
-    var J_top_right = J_bottom_left.transpose();
-    J = J.rbind(J_bottom_left);
-    J = J.cbind(J_top_right);
+    J = J.rbind(J_bottom_left).cbind(J_top_right); // missing bottom-right corner (2x2) to be filled below  
     
-    
-    // f3 = dl/dsigmaw
-    
-    tmp = dl_dsigmaw(sigma_within, mu_worker, mu_overall, data, id, sp);
-    
-    var f3          = tmp.f,
-        df3_dsigmaw = tmp.fp;
-        
-    // Complete Jacobian
-    J[mu_worker.length].push(df2_dmu, df2_dsigmaw);
-    J[mu_worker.length+1].push(df2_dsigmaw, df3_dsigmaw);
-    
-    
-    var f = f1.slice();
-    f.push(f2, f3);
-    
-    var change = NewtonRaphsonChange(J, f);
-    theta = theta.minus(change);
-    
-    var previous_sigma_within = sigma_within;
-    
-    mu_worker = theta.indexed(w);
-    mu_overall = theta[mu_worker.length];
-    sigma_within = theta[mu_worker.length+1];
-    
-    var max_change = change.max_abs();
-    iter++;
-    converged = max_change < epsilon;
-    cont = !converged & iter < max_niter;
+    J.m[mu_worker.length].push(d2l_dmu2); // Complete Jacobian
 
-    // Safety against sigma_within falling out of range
     
-    if (sp.uupOnSds)
-    {            
-      let tmp = sigma_within_RespectingRange(sigma_within, sp, previous_sigma_within);
-     
-      if (tmp.out_of_range)
-      {
-        sigma_within = tmp.sigma_within;
-        theta[mu_worker.length+1] = sigma_within;
-        cont = iter < max_niter;
-      } 
-    }
+    let previous_theta = theta.slice();
+    
+    var dl_dtheta = dl_dmui.slice();
+    dl_dtheta.push(dl_dmu);
+    
+    var change = NewtonRaphsonChange(J, dl_dtheta);  
+    theta = substract(theta, change);
+        
+    mu_worker = elements(theta, w);
+    mu_overall = theta[mu_worker.length];
+    
+    
+    iter++;
+    let max_change = NewtonRaphson_max_change(theta, previous_theta);
+    
+    converged = max_change < epsilon;
+    cont = !converged & iter < max_niter;   
   }
 
 
-  sigma_between = mu_worker.sd();
-
   var inits = {mu_overall: mu_overall, mu_worker: mu_worker, 
                sigma_within: sigma_within, sigma_between: sigma_between,
-               converged: converged};
+               converged: converged, niter: iter};
 
   return inits;
 } // end of MAP_Inits

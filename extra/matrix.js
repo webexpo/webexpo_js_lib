@@ -2,243 +2,315 @@
 //
 // Author: Patrick Bélisle
 //
-// Version 0.2 (Apr 2021)
+// Version 0.3 (May 2021)
+//  [distributed]                          
 
 
 // Change log
 // ======================
+// 
+// Version 0.3 (May 2021)
+// ----------------------
+//   Changed a few fct calls, as they are defined through Array.prototype anymore
+//     (e.g. dot_product)
+//
+//   The definition of the following functions were embedded in MyMatrix:
+//     - cbind
+//     - diag
+//     - inverse
+//     - matrix_product & matrix_times_vector [combined under the name: times]
+//     - rbind
+//     - sym_filled
+//     - transpose
+//
+//  New fct embedded in MyMatrix:
+//    - reset_diag
+//
+//
+// Version 0.2 (Apr 2021)
+// ----------------------
+//   - undocumented changes
+//
 //
 // Version 0.1 (Mar 2021)
+// ----------------------
 //   - original code
 
 
-Array.prototype.cbind = function(m)
+const MyMatrix = 
 {
-  // this & m: 2-d arrays
+  m: [],
   
-  // copy by value (and not by reference)
-  var M = this.map(function(arr){return arr.slice();});
-  for (let r=0; r<m.length; r++) M[r] = M[r].concat(m[r]);
   
-  return M;  
-} // end of Array.cbind
-
-
-create_matrix = function(R, C, initial_value=0)
-{
-  var M = Array(R).fill(initial_value).map(x => Array(C).fill(initial_value));
-  
-  return M;
-} // end of create_matrix
-
-
-Array.prototype.diag = function()
-{
-  // this: either a
-  //   a) 2-D array => Return the diagonal elements of the matrix 'this'
-  //   b) 1-D array => Return a matrix with diagonal = 'this'
-  
-  if (Array.isArray(this[0]))
+  cbind: function(o)
   {
-    // it is a matrix (2-D array)
+    // o: a MyMatrix object
     
+    var cbind = Object.create(MyMatrix);
+    
+    // copy by value (and not by reference)
+    M = this.m.map(function(arr){return arr.slice();});
+    for (let r=0; r<o.m.length; r++) M[r] = M[r].concat(o.m[r]);
+    
+    cbind.m = M;
+    return cbind;  
+  }, // end of cbind
+    
+    
+  diag: function()
+  {
+    // Return the diagonal elements of the matrix 'this.m'
+      
     var v = [];
     
-    var R = this.length,
-        C = this[0].length;
+    var R = this.m.length,
+        C = this.m[0].length;
         
     var dim = R < C ? R : C;
     
-    for (let i=0; i<dim; i++) v.push(this[i][i]);
+    for (let i=0; i<dim; i++) v.push(this.m[i][i]);
+    
     return v;
+  }, // end of diag
+  
+  
+  inverse: function()
+  {
+    // I use Gaussian Elimination to calculate the inverse of matrix 'm'
+    
+    // copy by value (and not by reference)
+    var M = this.m.map(function(arr){return arr.slice();});
+    
+    var R = this.m.length;
+  
+    
+    // Add Identity matrix to the right of M
+    
+    for (let i=0; i<R; i++)
+    {
+      for (let j=0; j<R; j++)
+      {
+        M[i].push(i == j ? 1 : 0);
+      }
+    }
+    
+    // Clean the lower triangular part of M (make its entries = 0)
+    
+    for (let i=0; i<R-1; i++)
+    {
+      M[i] = M[i].map(z => z / M[i][i]); // standardize reference row
+      for (let j=i+1; j<R; j++) M[j] = substract(M[j], M[i].map(m => m * M[j][i]));
+    }
+    
+    // Standardize last row
+    
+    var i = R - 1;
+    M[i] = M[i].map(z => z / M[i][i]);
+    
+    // Clean the upper triangular part of M (make its entries = 0)
+    
+    for (let i=0; i<R-1; i++)
+    {
+      for (let j=i+1; j<R; j++) M[i] = substract(M[i], M[j].map(m => m * M[i][j]));
+    }
+  
+    // The inverse is sitting in the right-side part of the augmented matrix M
+  
+    var inverse = new Array(R);
+    
+    for (let i=0; i<R; i++) 
+    {
+      inverse[i] = [];
+      for (let j=R; j<2*R; j++) inverse[i].push(M[i][j]);
+    }
+    
+    
+    var M = Object.create(MyMatrix);
+      M.m = inverse;
+      
+    return M;
+  }, // end of inverse
+  
+
+  rbind: function(o)
+  {
+    // o: a MyMatrix object
+    
+    var rbind = Object.create(MyMatrix);
+    
+    // copy by value (and not by reference)
+    var M = this.m.map(function(arr){return arr.slice();});
+    for (let r=0; r<o.m.length; r++) M.push(o.m[r]);
+    
+    rbind.m = M;
+    return rbind;  
+  }, // end of rbind
+    
+  
+  set_diag: function(diag)
+  {
+    // diag: an array to fill the matrix (this.m) diagonal
+    
+    var M = Object.create(MyMatrix);
+      // copy by value (and not by reference)
+      M.m = this.m.map(function(arr){return arr.slice();});
+    
+    for (let i=0; i<diag.length; i++) M.m[i][i] = diag[i];
+    
+    return M;
+  }, // end of set_diag  
+  
+  
+  sym_filled: function(copyLowerTriangle2Upper = true)
+  {
+    // Return a copy of 'this.m' as a symetric matrix by copying the values in its lower triangular part to the upper triangular part 
+    // (when copyLowerTriangle2Upper is true, or vice-versa when it is false)
+    
+    var M = Object.create(MyMatrix);
+      // copy by value (and not by reference)
+      m = this.m.map(function(arr){return arr.slice();});
+      M.m = m;
+    
+    for (let i=1; i<M.m.length; i++)
+    {
+      if (copyLowerTriangle2Upper)
+      {
+        for (let j=0; j<i; j++) M.m[j][i] = M.m[i][j];
+      }
+      else
+      {
+        for (let j=0; j<i; j++) M.m[i][j] = M.m[j][i];
+      }
+    }
+    
+    return M;
+  }, // end of sym_filled
+  
+  
+  times: function(b)
+  {
+    // b: a MyMatrix object or an array
+    // Returns - the matrix product of 'this.m' %*% b.m (if b is a matrix)
+    //         - the product this.m %*% b               (if b is an array/vector) 
+    
+    var R = this.m.length; // number of Rows of this.m
+    
+    
+    if (Array.isArray(b))
+    {
+      let times = [];
+      for (let i=0; i<R; i++) times.push(dot_product(this.m[i], b));
+        
+      return times; 
+    }
+     
+     
+    // b is a MyMatrix object
+    
+    var C = b.m[0].length; // number of Columns of b.m
+      var Rb = b.m.length; // number of rows in b
+    
+    var M = create_matrix(R, C);
+  
+    for (let j=0; j<C; j++)
+    {
+      let column_j = [];
+      for (let i=0; i < Rb; i++) column_j.push(b.m[i][j]);
+      
+      for (let i=0; i < R; i++) M.m[i][j] = dot_product(this.m[i], column_j);
+    }
+    
+    return M;
+  }, // end of times
+ 
+  
+  transpose: function()
+  {
+    // transpose the matrix 'this.m'
+    var R = this.m.length;
+    var C = this.m[0].length;
+    
+    var M = create_matrix(C, R);
+    
+    for (let i=0; i<R; i++)
+    {
+      for (let j=0; j<C; j++) M.m[j][i] = this.m[i][j];
+    }
+    
+    return M;
+  } // end of transpose
+} // end of MyMatrix type definition
+
+
+create_matrix = function(R, C, new_object=true, fill_in_value=0)
+{
+  var m = Array(R).fill(fill_in_value).map(x => Array(C).fill(fill_in_value));
+  
+  if (new_object)
+  {
+    var M = Object.create(MyMatrix); 
+      M.m = m;
+  
+    return M;
+  }
+  else return m;
+} // end of create_matrix
+
+            
+diag = function(arr, new_object=true)
+{
+  // arr: a (1-D) array
+  // => Return a matrix with diagonal elements = 'arr'
+  
+  var dim = arr.length;
+  
+  if (new_object)
+  {
+    var M = create_matrix(dim, dim);
+    for (let i=0; i<dim; i++) M.m[i][i] = arr[i];
+
+    return M;
   }
   else
   {
-    // it is a vector (array)
-    var dim = this.length;
-    var M = Array(dim).fill(0).map(x => Array(dim).fill(0)); // create a null dim x dim matrix
-    for (let i=0; i<dim; i++) M[i][i] = this[i];
-    return M;
-  }
-} // end of Array.diag
+    var m = create_matrix(dim, dim, false);
+    for (let i=0; i<dim; i++) m[i][i] = arr[i];
 
-
-Array.prototype.inverse = function()
-{
-  // I use Gaussian Elimination to calculate the inverse of matrix 'this'
-  
-  // copy by value (and not by reference)
-  var M = this.map(function(arr){return arr.slice();});
-  
-  var R = this.length;
-
-  
-  // Add Identity matrix to the right of M
-  
-  for (let i=0; i<R; i++)
-  {
-    for (let j=0; j<R; j++)
-    {
-      M[i].push(i == j ? 1 : 0);
-    }
-  }
-  
-  // Clean the lower triangular part of M (make its entries = 0)
-  
-  for (let i=0; i<R-1; i++)
-  {
-    M[i] = M[i].map(z => z / M[i][i]); // standardize reference row
-    for (let j=i+1; j<R; j++) M[j] = M[j].minus(M[i].times(M[j][i]));
-  }
-  
-  // Standardize last row
-  
-  var i = R - 1;
-  M[i] = M[i].map(z => z / M[i][i]);
-  
-  // Clean the upper triangular part of M (make its entries = 0)
-  
-  for (let i=0; i<R-1; i++)
-  {
-    for (let j=i+1; j<R; j++) M[i] = M[i].minus(M[j].times(M[i][j]));
-  }
-
-  // The inverse is sitting in the right-side part of the augmented matrix M
-
-  var inverse = new Array(R);
-  
-  for (let i=0; i<R; i++) 
-  {
-    inverse[i] = [];
-    for (let j=R; j<2*R; j++) inverse[i].push(M[i][j]);
-  }
-  
-  return inverse;
-} // end of Array.inverse
+    return m;
+  }    
+} // end of diag
 
 
 function LinearRegression_BetaHat(Y, Xp)
 {   
-  return Xp.matrix_product(Xp.transpose()).inverse().matrix_product(Xp).matrix_times_vector(Y);
+  return Xp.times(Xp.transpose()).inverse().times(Xp).times(Y);
 } // end of LinearRegression_BetaHat
-
-
-Array.prototype.matrix_product = function(b)
-{
-  // Returns the matrix product of 'this' x b
-  
-  var R = this.length; // number of Rows of this
-  var C = b[0].length; // number of Columns of b
-  
-  var m = create_matrix(R, C);
-
-  for (let j=0; j<C; j++)
-  {
-    let column_j = [];
-    for (let i=0; i<b.length; i++) column_j.push(b[i][j]);
-    
-    for (let i=0; i<R; i++) m[i][j] = column_j.dot_product(this[i]);
-  }
-  
-  return m;
-} // end of Array.matrix_product
-
-
-Array.prototype.matrix_times_vector = function(v)
-{
-  var res = [];
-  for (let i=0; i<this.length; i++) res.push(this[i].dot_product(v));
-  
-  return res; 
-} // end of Array.matrix_times_vector
 
 
 function NewtonRaphsonChange(Jacobian, f, target=[])
 {
-  // Jacobian: a 2-D array, of dimension m x m
+  // Jacobian: a MyMatrix object, with property.m a 2-D array of dimension m x m
   // f:        an array of length m
   
-  // NOTE: Requires the dot_product & minus functions defined in genericFcts.js
+  // NOTE: Requires the substract function defined in genericFcts.js
+    
+  if (target.length > 0) f = substract(f, target);
   
-  var change = [];
-  var J_inv = Jacobian.inverse();
-  
-  if (target.length > 0) f = f.minus(target);
-  
-  for (let i=0; i<f.length; i++) change.push(J_inv[i].dot_product(f));
+  var change = Jacobian.inverse().times(f);
   
   return change;
 } // end of NewtonRaphsonChange
 
 
-Array.prototype.rbind = function(m)
+function NewtonRaphson_max_change(theta, previous_theta)
 {
-  // this & m: 2-d arrays
+  let abs_change = theta.map((t,i) => t - previous_theta[i]).map(Math.abs);
+  let max_change = abs_change.shift();
   
-  // copy by value (and not by reference)
-  var M = this.map(function(arr){return arr.slice();});
-  for (let r=0; r<m.length; r++) M.push(m[r]);
-  
-  return M;  
-} // end of Array.rbind
-
-
-Array.prototype.set_diag = function(diag)
-{
-  // this: a 2-D array
-  // diag: an array to fill the matrix (this) diagonal
-  
-  // copy by value (and not by reference)
-  var M = this.map(function(arr){return arr.slice();});
-  
-  for (let i=0; i<diag.length; i++)
+  for (i=0; i<abs_change.length; i++)
   {
-    M[i][i] = diag[i]; // set diagonal element to new value
+    if (abs_change[i] > max_change) max_change = abs_change[i];
   }
   
-  return M;
-} // end of Array.set_diag
-
-
-Array.prototype.sym_filled = function(copyLowerTriangle2Upper = true)
-{
-  // this: a 2-D array (assumed symetric)
-
-  // Return a copy of 'this' as a symetric matrix by copying the values in its lower triangular part to the upper triangular part 
-  // (when copyLowerTriangle2Upper is true, or vice-versa when it is false)
-  
-  // copy by value (and not by reference)
-  var M = this.map(function(arr){return arr.slice();});
-  
-  for (let i=1; i<M.length; i++)
-  {
-    if (copyLowerTriangle2Upper)
-    {
-      for (let j=0; j<i; j++) M[j][i] = M[i][j];
-    }
-    else
-    {
-      for (let j=0; j<i; j++) M[i][j] = M[j][i];
-    }
-  }
-  
-  return M;
-} // end of Array.set_diag
-
-
-Array.prototype.transpose = function()
-{
-  // this: a 2-D array
-  
-  var R = this.length;
-  var C = this[0].length;
-  
-  var M = Array(C).fill(0).map(x => Array(R).fill(0));
-  
-  for (let i=0; i<R; i++)
-  {
-    for (let j=0; j<C; j++) M[j][i] = this[i][j];
-  }
-  
-  return M;
-} // end of Array.transpose
+  return max_change;
+} // end of NewtonRaphsonMaxChange
