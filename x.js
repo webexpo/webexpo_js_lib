@@ -390,8 +390,8 @@ function initLocale()
   $.i18n.locale = lang;
 }
 
-function translatePage()
-{
+zygotine.T = {};
+zygotine.T.translate = function() {
   var i18n = $.i18n({locale: $.i18n.locale});
   $('body').attr('data-lang', $.i18n.locale);
   $.i18n().load( 'i18n/demo-' + i18n.locale + '.json', i18n.locale ).done(function(x) {
@@ -406,6 +406,3 @@ function translatePage()
     }
   });
 }
-
-zygotine.T = {};
-zygotine.T.translate = translatePage;
