@@ -1,10 +1,37 @@
-﻿/// <reference path="A.js" />
+/// <reference path="A.js" />
 /// <reference path="M0.js" />
 /// <reference path="M.js" />
 /// <reference path="U.js" />
 
 zygotine.X = {};
 zygotine.X.lastModel = null;
+zygotine.X.common = null
+
+zygotine.X.genPseudoRand32Bit = function() {
+  return (Math.random() * Math.pow(2, 31)) | 0
+}
+
+zygotine.X.setDefaultsForDistribution = function(loi) {
+  zygotine.X.common.dataEntries.prngSeed.reset()
+}
+
+zygotine.X.ready = function() {
+  $('.toggle-show').click(function(e) {
+    $targ = $(this).find('svg[data-icon]')
+    $targ.toggleClass('fa-plus-square')
+    $targ.toggleClass('fa-minus-square')
+    $span = $(this).find('span')
+    let show = $span.attr('data-show')
+    show = 1-parseInt(show)
+    $span.attr('data-show', show)
+    $span.text($.i18n(`show-examples-${show}`))
+    $('#demoBtns').toggle()
+  })
+}
+zygotine.X.setDataEntries = function() {
+  let entries = zygotine.X.common.dataEntries
+  entries.prngSeed = new zygotine.X.ValueBasedDataEntry("prngSeed", zygotine.X.genPseudoRand32Bit(), zygotine.X.i18n('algo-seed-expl', 'prngSeed'), true, 1, Math.pow(2,31)-1)
+}
 
 zygotine.X.getNumericalResult = function (
     logN,
@@ -141,7 +168,40 @@ zygotine.X.getNumericalResult = function (
             })()
         };
     }
+    
+    let calcAihaRiskBand = function(chainType = "p95") {
+      var qNorm = zygotine.S.normal.icdf
+      var lowerTail = true
+      var logP = false
+      var qNormOfPercOfInterest = qNorm(percOfInterest / 100, 0, 1, lowerTail, logP)
+      for (let i = 0; i < muC.length; i++) {
+        if ( chainType == "p95" ) {
+          chaine[i] = muC[i] + (qNormOfPercOfInterest * sigmaC[i])
+          if ( logN ) { chaine[i] = Math.exp(chaine[i]) }
+        } else if ( chainType == "am" ) {
+          chaine[i] = logN ? Math.exp(muC[i] + (0.5 * sigmaC[i] * sigmaC[i])) : muC[i];
+        }
+      }
 
+      let overexpo = function(scaleFactor = 1) { return 100 * chaine.filter(function (b) { return b > scaleFactor*oel; }).length / chaine.length; }
+      let riskVals = [
+        (100 - overexpo(.01)).toFixed(1),
+        (overexpo(.01) - overexpo(.1)).toFixed(1),
+        (overexpo(.1) - overexpo(.5)).toFixed(1),
+        (overexpo(.5) - overexpo()).toFixed(1),
+        overexpo().toFixed(1)
+      ]
+      return riskVals
+    }
+    reponse.aihaBandP95 = (function () {
+        let vals = calcAihaRiskBand("p95")
+        return { src: "aihaBandP95", logN: logN, q: vals, risk: vals.join(' / ') };
+    })()
+    reponse.aihaBandAM = (function () {
+        let vals = calcAihaRiskBand("am")
+        return { src: "aihaBandPAM", logN: logN, q: vals, risk: vals.join(' / ') };
+    })()
+    
     t = performance.now() - t0;
     return reponse;
 }; //zygotine.X.getNumericalResultFunctions
@@ -171,7 +231,7 @@ zygotine.X.ValueBasedDataEntry.prototype = {
     getChangeFn() {
         var entry = this;
         return function () {
-            entry.currentValue = entry.initialValue + ""; //$('#' + entry.elementId).val();
+            entry.currentValue = $('#' + entry.elementId).val();
             entry.validate();
             if (entry.validation.ok) {
                 entry.element.removeClass('invalid');
@@ -324,7 +384,7 @@ zygotine.X.display1NumericalResult = (function () {
     return f;
 })();
 
-zygotine.X.concatChains = function (result, flavor, decimalSeparator) {
+zygotine.X.concatChains = function (result, flavor, chainSep = '\t', eol = '\r\n', decimalSeparator) {
     var replaceDecimalPoint = (typeof decimalSeparator === 'string');
     if (replaceDecimalPoint) {
         replaceDecimalPoint = decimalSeparator[0] !== '.';
@@ -343,10 +403,10 @@ zygotine.X.concatChains = function (result, flavor, decimalSeparator) {
             oneLineData[iC] = shrKut[iC].data[iL];
         }
 
-        res[iL + 1] = oneLineData.join('\t');
+        res[iL + 1] = oneLineData.join(chainSep);
     }
 
-    var rep = res.join('\r\n');
+    var rep = res.join(eol);
     return replaceDecimalPoint ? rep.replace(/\./g, decimalSeparator[0]) : rep;
 }; 
 
@@ -362,47 +422,64 @@ zygotine.X.alert = function (message, title) {
     var jqobj = $('#dialog-message');
     jqobj.attr('title', title);
     jqobj.children('p').html(message);
-    if ( $("#dialog-message").length ) {
-      zygotine.X.a = $("#dialog-message").dialog({
-          width: 500,
-          modal: true,
-          //open: function (event, ui) {
-          //    $(".ui-dialog-titlebar-close").hide();
-          //},
-          buttons: {
-              Ok: function () {
-                  $(this).dialog("close");
-              }
-          }
-      });
-    } else {
-      console.error(message);
-    }
+    zygotine.X.a = $("#dialog-message").dialog({
+        width: 500,
+        modal: true,
+        //open: function (event, ui) {
+        //    $(".ui-dialog-titlebar-close").hide();
+        //},
+        buttons: {
+            Ok: function () {
+                $(this).dialog("close");
+            }
+        }
+    });
 }
 
-function initLocale()
-{
-  $.i18n.debug = true;
-        
-  var url = new URL(window.location.href);
-  var lang = url.searchParams.get('lang');
-  lang = lang == null ? 'fr' : lang.toLowerCase();
-  $.i18n.locale = lang;
+zygotine.X.i18n = function(msgid, elemid) {
+  (waitForTranslation = function() {
+    if ( !$('body').data('trans-done') ) {
+      setTimeout(waitForTranslation, 500)
+    } else {
+      $(`#${elemid}`).attr('title', $.i18n(msgid))
+    }
+  })()
 }
 
-zygotine.T = {};
-zygotine.T.translate = function() {
-  var i18n = $.i18n({locale: $.i18n.locale});
-  $('body').attr('data-lang', $.i18n.locale);
-  $.i18n().load( 'i18n/demo-' + i18n.locale + '.json', i18n.locale ).done(function(x) {
-    $('html').i18n();
-  });
-  $('.lang-switcher .lang').each(function() {
-    var this_locale = $(this)[0].classList[1];
-    if ( $.i18n.locale != this_locale ) {
-      $(this).attr('href', window.location.origin + window.location.pathname + "?lang=" + this_locale);
-    } else {
-      $(this).replaceWith("<span class='lang selected'>" + $(this).text() + "</span>");
+zygotine.X.RiskbandFloatSetDataEntry = function (className, title, min, max) {
+  this.className = className
+  this.currentValue = null
+  this.elements = $(`.${this.className}`)
+  this.elements.attr("title", title)
+  this.min = min == undefined ? Number.NEGATIVE_INFINITY : min
+  this.max = max == undefined ? Number.POSITIVE_INFINITY : max
+  this.validation = null
+  this.reset()
+}
+
+zygotine.X.RiskbandFloatSetDataEntry.prototype = {
+  type: 'riskband-float-set',
+  reset: function () {
+    this.elements = $(`.${this.className}`)
+    if ( this.elements.length > 0 ) {
+      this.elements.change(this.getChangeFn())
+      this.elements.first().trigger('change')
     }
-  });
+  },
+  getChangeFn() {
+    var dis = this
+    return function () {
+      dis.currentValue = dis.elements.map(function() { return $(this).val() }).get().map(parseFloat)
+      dis.validate()
+      dis.elements.removeClass('invalid')
+      if (!dis.validation.ok) {
+        dis.elements.filter((i, _) => !dis.validation.elems[i]).addClass('invalid')
+      }
+    }
+  },
+  validate: function () {
+    let validElems = this.currentValue.map(val => !isNaN(val) && val >= this.min && val <= this.max)
+    let ok = validElems.filter(v => v).length == validElems.length
+    this.validation = { ok, elems: validElems }
+  }
 }

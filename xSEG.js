@@ -1,4 +1,6 @@
 zygotine.SEG = {};
+zygotine.X.common = zygotine.SEG
+
 zygotine.SEG.lastModel = null;
 zygotine.SEG.dataEntries = {};
 
@@ -8,7 +10,7 @@ zygotine.SEG.Model = function () {
     this.numericalResult = null;
     var entries = zygotine.SEG.dataEntries;
     this.logN = entries.dstrn.currentValue === 'logN';
-    this.modelType = entries["sigmaPrior"].currentValue === 'expostats' ? 'inf' : 'unInf';
+    this.modelType = entries.method.currentValue == 'classic' ? (entries["sigmaPrior"].currentValue === 'expostats' ? 'inf' : 'unInf') : 'riskband';
     this.oel = Number(entries.oel.currentValue);
     this.percOfInterest = Number(entries.percOfInterest.currentValue);
     this.fracThreshold = Number(entries.fracThreshold.currentValue);
@@ -29,13 +31,13 @@ zygotine.SEG.Model.prototype.className = "SEGModel";
 //    $('#values_Chains').text(this.result.chains[muOrSd].data.join('\r\n'));
 //};
 
-zygotine.SEG.Model.prototype.getChainAsString = function (chainId) {
-    return this.result.chains[chain].data.join('\r\n');
+zygotine.SEG.Model.prototype.getChainAsString = function (chainId, sep) {
+    return this.result.chains[chainId].data.join(sep)
 };
 
 zygotine.SEG.Model.prototype.validate = function () {
     var entries = zygotine.SEG.dataEntries;
-    var names = zygotine.SEG.getDataEntryNames(entries["sigmaPrior"].currentValue, entries['withPastData'].currentValue);
+    var names = zygotine.SEG.getDataEntryNames(entries["sigmaPrior"].currentValue, entries['withPastData'].currentValue, entries.method.currentValue);
     var toutes = names.map(n => entries[n]);
     var fautives = toutes.filter(e => !e.validation.ok);
     if (fautives.length !== 0) {
@@ -45,7 +47,7 @@ zygotine.SEG.Model.prototype.validate = function () {
 
 zygotine.SEG.Model.prototype.doCalculation = function () {
     if (this.hasError) {
-        //alert('Certaines infos sont incorrectes ou manquantes. Les calculs ne peuvent être effectués.');
+        //alert('Certaines infos sont incorrectes ou manquantes. Les calculs ne peuvent �tre effectu�s.');
         this.result = null;
     } else {
         var entries = zygotine.SEG.dataEntries;
@@ -59,6 +61,7 @@ zygotine.SEG.Model.prototype.doCalculation = function () {
         var muLower = Number(entries.muLower.currentValue);
         var muUpper = Number(entries.muUpper.currentValue);
         var oel = Number(entries.oel.currentValue);
+        
         if (this.modelType === 'inf') {
             let logSigmaMu = Number(entries.logSigmaMu.currentValue);
             let logSigmaPrec = Number(entries.logSigmaPrec.currentValue);
@@ -71,15 +74,19 @@ zygotine.SEG.Model.prototype.doCalculation = function () {
             }
 
             mdl = new zygotine.M.SEGInformedVarModel(ml, modelParameters, mcmc, pds);
-        } else {
+        } else
+        if ( this.modelType === 'unInf' ) {
             let sdRangeInf = Number(entries.sdRangeInf.currentValue);
             let sdRangeSup = Number(entries.sdRangeSup.currentValue);
             let modelParameters = zygotine.SEG.createSEGUninformativeModelParameters(this.logN, oel, initMu, initSigma, muLower, muUpper, sdRangeInf, sdRangeSup);
-            mdl = new zygotine.M.SEGInformedVarModel(ml, modelParameters, mcmc);
+            mdl = new zygotine.M.SEGUninformativeModel(ml, modelParameters, mcmc); // modif f�vrier 2020: "SEGInformedVarModel" remplac� par "SEGUninformativeModel"
+        } else {
+          let modelParameters = zygotine.SEG.createSEGRiskbandModelParameters(this.logN)
+          mdl = new zygotine.M.SEGRiskbandModel(ml, modelParameters, mcmc)
         }
 
         let t0 = performance.now();
-        this.result = mdl.compute();
+        this.result = mdl.compute(); // compute de BaseModel accepte un prngSeed
         let t1 = performance.now();
         if (!this.result.hasError) {
             this.elapsedTime.runningModel = Math.round10((t1 - t0) / 1000.0, -4);
@@ -89,19 +96,24 @@ zygotine.SEG.Model.prototype.doCalculation = function () {
         let mtypeLessThan = ml.measureByType.uncensored ? ml.measureByType.lessThan.length : 0;
         let mtypeGreaterThan = ml.measureByType.uncensored ? ml.measureByType.greaterThan.length : 0;
         let mtypeInterval = ml.measureByType.uncensored ? ml.measureByType.interval.length : 0;
-        this.measureRepartition = zygotine.U.fmt('non-cens'+':{0},  <:{1}, >:{2}, ' + 'intervalle' + ':{3}', mtypeUncensored, mtypeLessThan, mtypeGreaterThan, mtypeInterval);
+        this.measureRepartition = zygotine.U.fmt($.i18n('non-cens')+':{0},  <:{1}, >:{2}, ' + $.i18n('intervalle') + ':{3}', mtypeUncensored, mtypeLessThan, mtypeGreaterThan, mtypeInterval);
     }
 };
 
-zygotine.SEG.Model.prototype.showResults = function () {
+zygotine.SEG.Model.prototype.showResults = function (muSample = undefined, sdSample = undefined) {
 
     let t0 = performance.now();
-    let numRes = zygotine.X.getNumericalResult(this.logN, this.result.chains.muSample.data, this.result.chains.sdSample.data, this.oel, this.confidenceLevelForCredibileInterval, this.fracThreshold, this.percOfInterest);
+    if ( muSample == undefined ) {
+      muSample = this.result.chains.muSample.data
+    }
+    if ( sdSample == undefined ) {
+      sdSample = this.result.chains.sdSample.data
+    }
+    let numRes = zygotine.X.getNumericalResult(this.logN, muSample, sdSample, this.oel, this.confidenceLevelForCredibileInterval, this.fracThreshold, this.percOfInterest);
     zygotine.SEG.displayNumericalResults(numRes);
     let t1 = performance.now();
     this.elapsedTime.numericalResults = Math.round10((t1 - t0) / 1000.0, -4);
-    //$("#numRes_NumRes").children(".VALUES").children('.numRes_NumRes').text(zygotine.SEG.lastModel.elapsedTime.numericalResults);
-    return numRes;
+    $("#numRes_NumRes").children(".VALUES").children('.numRes_NumRes').text(zygotine.SEG.lastModel.elapsedTime.numericalResults);
 };
 
 zygotine.SEG.runModel = function () {
@@ -117,7 +129,7 @@ zygotine.SEG.runModel = function () {
     zygotine.X.hideBePatient();
 
     if (model.result.hasError) {
-        zygotine.X.alert(model.result.messages.getErrors(), 'notez');
+        zygotine.X.alert(model.result.messages.getErrors(), $.i18n('notez'));
         return;
     }
 
@@ -126,13 +138,11 @@ zygotine.SEG.runModel = function () {
     $('option[value="muBurnin"]').prop('disabled', test);
     $('option[value="sdBurnin"]').prop('disabled', test);
 
-    var results = model.showResults();
+    model.showResults();
 
     //    $('#select_Chains').val('muSample');
     //    model.showChain('muSample');
     zygotine.SEG.lastModel = model;
-    
-    return results;
 };
 
 //zygotine.SEG.showChain = function (muOrSd) {
@@ -144,8 +154,8 @@ zygotine.SEG.runModel = function () {
 //};
 
 zygotine.SEG.hideNumericalResults = function () {
-    $('#numRes').hide();
-    $('#dnldChains').hide();
+    $('#numRes').hide()
+    $('#dnldChains').hide()
 };
 
 zygotine.SEG.showNumericalResults = function (logN) {
@@ -160,9 +170,13 @@ zygotine.SEG.showNumericalResults = function (logN) {
 
     $('#numRes').show();
     $('#dnldChains').show();
-    $('#dnldBurninChainBtn').hide();
+    $('.dnldBtn.burnin-chain').hide()
+    $('.dnldBtn.riskband-plot').hide()
     if (zygotine.SEG.dataEntries.monitorBurnin.currentValue && (parseInt(zygotine.SEG.dataEntries.nBurnin.currentValue) > 0)) {
-        $('#dnldBurninChainBtn').show();
+        $('.dnldBtn.burnin-chain').show()
+    }
+    if ( zygotine.SEG.dataEntries.method.currentValue == "riskband" ) {
+      $('.dnldBtn.riskband-plot').show()
     }
 };
 
@@ -201,7 +215,7 @@ zygotine.SEG.createSEGInformedVarModelParameters = function (logN, oel, initMu, 
 };
 
 zygotine.SEG.createSEGUninformativeModelParameters = function (logN, oel, initMu, initSigma, muLower, muUpper, sdRangeInf, sdRangeSup) {
-    var params = new zygotine.M.SEGInformedVarModelParameters(logN, oel);
+    var params = new zygotine.M.SEGUninformativeModelParameters(logN, oel); // modif f�vrier 2020: "SEGInformedVarModelParameters" remplac� par "SEGUninformativeModelParameters"
     params.initMu = initMu;
     params.initSigma = initSigma;
     params.muLower = muLower;
@@ -209,6 +223,11 @@ zygotine.SEG.createSEGUninformativeModelParameters = function (logN, oel, initMu
     params.sdRange = [sdRangeInf, sdRangeSup];
     return params;
 };
+
+zygotine.SEG.createSEGRiskbandModelParameters = function (logN) {
+  var params = new zygotine.M.SEGRiskbandModelParameters(logN)
+  return params
+}
 
 zygotine.SEG.defaultEntryValues = (function () {
 
@@ -254,6 +273,7 @@ zygotine.SEG.defaultEntryValues = (function () {
 })();
 
 zygotine.SEG.setDataEntries = function () {
+
     var entries = zygotine.SEG.dataEntries;
     var valueBased = zygotine.X.ValueBasedDataEntry;
     var integer = true;
@@ -263,7 +283,7 @@ zygotine.SEG.setDataEntries = function () {
     var entry;
     var changeFn;
 
-    entries.obsValues = new valueBased('obsValues', '', "Requis. Voir la documentation quant à la façon de présenter les observations.");
+    entries.obsValues = new valueBased('obsValues', '', "Requis. Voir la documentation quant à la fa�on de présenter les observations.");
     entries.obsValues.validate = function () {
         var ml;
         var fmtMeasureListMessages = function () {
@@ -316,15 +336,14 @@ zygotine.SEG.setDataEntries = function () {
     //mcmc
     entries.nIter = new valueBased('nIter', defaults.nIter.logN.inform, "Requis. Un nombre entier compris entre 500 et  500000", integer, 500, 500000);
     entries.nBurnin = new valueBased('nBurnin', defaults.nBurnin.logN.inform, "Requis. Un nombre entier compris entre 0 et  50000", integer, 0, 15000);
-    entries.initMu = new valueBased("initMu", '', "Requis. Un nombre réel.", float);
+    entries.initMu = new valueBased("initMu", defaults.initMu.logN.inform, "Requis. Un nombre réel.", float);
 
-    entries.initSigma = new valueBased("initSigma", '', float);
-    //paramètres pour l'interprétation des données
+    entries.initSigma = new valueBased("initSigma", defaults.initSigma.logN.inform, float);
+    //param�tres pour l'interpr�tation des données
     entries.oel = new valueBased("oel", '', "Requis. Un nombre réel correspondant à la valeur limite d'exposition.", float);
     entries.confidenceLevelForCredibileInterval = new valueBased("confidenceLevelForCredibileInterval", 90, "Requis. Un entier compris entre 1 et 99.", integer, 1, 99);
     entries.percOfInterest = new valueBased("percOfInterest", 95, "Requis. Un entier compris entre 1 et 99.", integer, 1, 99);
     entries.fracThreshold = new valueBased("fracThreshold", 5, "Requis. Un entier compris entre 1 et 99.", integer, 1, 99);
-    entries.psi = new valueBased("psi", 30, "Requis. Un entier compris entre 1 et 99.", integer, 1, 99);
 
     //prior sur mu
     entries.muLower = new valueBased("muLower", '', 'Requis. Un nombre réel établissant un minimum pour la prior de mu.', float);
@@ -340,6 +359,8 @@ zygotine.SEG.setDataEntries = function () {
     entries.pdN = new valueBased("pdN", '', "Nombre entier (>1) requis lorsque la prior pour sigma est 'expostats' et que des données externes sont prises en compte.", integer, 2, Number.MAX_SAFE_INTEGER);
     //radio
 
+    zygotine.X.setDataEntries()
+    
     var radioBased = zygotine.X.RadioButtonBasedDataEntry;
     entries.sigmaPrior = new radioBased('sigmaPrior', 'spExpostats');
     entry = entries.sigmaPrior;
@@ -390,28 +411,62 @@ zygotine.SEG.setDataEntries = function () {
         zygotine.SEG.setDefaultsForDistribution(entry.currentValue);
     });
 
-    zygotine.SEG.reset();
+    entries.method = new radioBased('method', 'meth-classic')
+    entries.method.element.change(function() {
+      zygotine.SEG.disableMethodDiv(this)
+      zygotine.SEG.dataEntries.method.currentValue = this.value
+    })
+    entries.method.reset()
+    
+    DisplayRegionProbsTable()
+    entries.riskbandCutOffs = new zygotine.X.RiskbandFloatSetDataEntry('cut-offs', 'Des nombres réels en ordre croissant correspondant aux bornes des régions')
+    entries.riskbandUserDefnProbs = new zygotine.X.RiskbandFloatSetDataEntry('ud-probs', 'Des probabilités entre 0 et 1 en ordre croissant qui totalisent 1', 0, 1)
+    
+    entries.regionsWeightingType = new radioBased('regionProbs', 'rp_equalwts')
+    entries.regionsWeightingType.element.change(function() {
+      entries.regionsWeightingType.currentValue = this.value
+      regionProbsChange(this) 
+    })
+    entries.regionsWeightingType.reset()
+    
+    entries.muLowerRiskband = new valueBased("mu_lower", '', 'Requis. Un nombre réel établissant un minimum pour la distrbution a priori de mu.', float)
+    entries.muLowerRiskband.element.change()
+    entries.muUpperRiskband = new valueBased("mu_upper", '', 'Requis. Un nombre réel établissant un maximum pour la distrbution a priori de mu.', float)
+    entries.muUpperRiskband.element.change()
+    entries.gsdLowerRiskband = new valueBased("gsd_lower", '', 'Requis. Un nombre réel établissant un minimum pour la distrbution a priori de gsd.', float)
+    entries.gsdLowerRiskband.element.change()
+    entries.gsdUpperRiskband = new valueBased("gsd_upper", '', 'Requis. Un nombre réel établissant un maximum pour la distrbution a priori de gsd.', float)
+    entries.gsdUpperRiskband.element.change()
+        
+    zygotine.SEG.reset()
 };
 
 zygotine.SEG.getDataEntryNames = (function () {
 
-    var common = ['obsValues', 'nIter', 'nBurnin', 'monitorBurnin', 'oel', 'confidenceLevelForCredibileInterval', 'fracThreshold', 'percOfInterest', 'initMu', 'initSigma', 'muLower', 'muUpper'];
+    var common = ['obsValues', 'nIter', 'nBurnin', 'monitorBurnin', 'oel', 'confidenceLevelForCredibileInterval', 'fracThreshold', 'percOfInterest', 'initMu', 'initSigma', 'muLower', 'muUpper', 'prngSeed'];
     var unifPrior = ['sdRangeInf', 'sdRangeSup'];
     var expostatsPrior = ['logSigmaMu', 'logSigmaPrec'];
     var pd = ['pdMean', 'pdSd', 'pdN'];
 
-    var fn = function (sigmaPrior, withPastData) {
+    var fn = function (sigmaPrior, withPastData, method = 'classic') {
         var rep = [];
 
         Array.prototype.push.apply(rep, common);
 
-        if (sigmaPrior === 'uniform') {
-            Array.prototype.push.apply(rep, unifPrior);
+        if ( method == 'classic' ) {
+          if (sigmaPrior === 'uniform') {
+              Array.prototype.push.apply(rep, unifPrior);
+          } else {
+              Array.prototype.push.apply(rep, expostatsPrior);
+              if (withPastData) {
+                  Array.prototype.push.apply(rep, pd);
+              }
+          }
         } else {
-            Array.prototype.push.apply(rep, expostatsPrior);
-            if (withPastData) {
-                Array.prototype.push.apply(rep, pd);
-            }
+          Array.prototype.push.apply(rep, ['riskbandCutOffs', 'muLowerRiskband', 'muUpperRiskband', 'gsdLowerRiskband', 'gsdUpperRiskband'])
+          if ( zygotine.SEG.dataEntries.regionsWeightingType.currentValue == 'user' ) {
+            Array.prototype.push.apply(rep, ['riskbandUserDefnProbs'])
+          }
         }
 
         return rep;
@@ -431,7 +486,7 @@ zygotine.SEG.reset = function () {
     entries.monitorBurnin.reset();
     entries.withPastData.reset();
     // ++ monitorBurnin ++
-    //paramètres pour l'interprétation des données
+    //param�tres pour l'interpr�tation des données
     entries.oel.reset();
     entries.confidenceLevelForCredibileInterval.reset();
     entries.percOfInterest.reset();
@@ -442,30 +497,27 @@ zygotine.SEG.reset = function () {
     entries.pdN.reset();
     //radio ... autres que dstrn
     entries.sigmaPrior.reset();
+    entries.prngSeed.element.val(zygotine.X.genPseudoRand32Bit())
+    $("#RCodeWithResults").html("")
+    ClearRiskbandErrorMsg()
+    
 };
 
 zygotine.SEG.setDefaultsForDistribution = function (loi) {
     var entries = zygotine.SEG.dataEntries;
     var defaults = zygotine.SEG.defaultEntryValues;
 
-    entries.initMu.initialValue = defaults.initMu[loi].inform;
-    
-    entries.initSigma.initialValue = defaults.initSigma[loi].inform;
-    
+    entries.initMu.element.val(defaults.initMu[loi].inform).trigger('change');
+    entries.initSigma.element.val(defaults.initSigma[loi].inform).trigger('change');
     //prior sur mu
-    entries.muLower.initialValue = defaults.muLower[loi].inform;
-    
-    
-    entries.muUpper.initialValue = defaults.muUpper[loi].inform;
-    
+    entries.muLower.element.val(defaults.muLower[loi].inform).trigger('change');
+    entries.muUpper.element.val(defaults.muUpper[loi].inform).trigger('change');
     // sigmaPrior name / uniform vs expostats
-    entries.logSigmaMu.initialValue = defaults.logSigmaMu[loi].inform;
-    
-    entries.logSigmaPrec.initialValue = defaults.logSigmaPrec[loi].inform;
-    
-    entries.sdRangeInf.initialValue = defaults.sdRangeInf[loi].unInform;
-        
-    entries.sdRangeSup.initialValue = defaults.sdRangeSup[loi].unInform;
+    entries.logSigmaMu.element.val(defaults.logSigmaMu[loi].inform).trigger('change');
+    entries.logSigmaPrec.element.val(defaults.logSigmaPrec[loi].inform).trigger('change');
+    entries.sdRangeInf.element.val(defaults.sdRangeInf[loi].unInform).trigger('change');
+    entries.sdRangeSup.element.val(defaults.sdRangeSup[loi].unInform).trigger('change');
+    zygotine.X.setDefaultsForDistribution(loi)
 };
 
 zygotine.SEG.tests = {
@@ -477,6 +529,7 @@ zygotine.SEG.tests = {
         $('#withPastData').prop('checked', false).trigger('change');
         $('#obsValues').val(a).trigger('change');
         $('#oel').val('.95').trigger('change');
+        $('#prngSeed').val('1111').trigger('change')
     },
 
     ecrireLogNExpostatsWithPDS: function () {
@@ -490,7 +543,7 @@ zygotine.SEG.tests = {
         $('#pdMean').val('-0.5108256').trigger('change');
         $('#pdSd').val('0.9162907').trigger('change');
         $('#pdN').val('20').trigger('change');
-
+        $('#prngSeed').val('2222').trigger('change')
     },
 
     ecrireNormExpostatsWoPDS: function () {
@@ -501,6 +554,7 @@ zygotine.SEG.tests = {
         $('#withPastData').prop('checked', false);
         $('#obsValues').val(a).trigger('change');
         $('#oel').val('90.0').trigger('change');
+        $('#prngSeed').val('3333').trigger('change')
     },
 
     ecrireNormExpostatsWithPDS: function () {
@@ -516,6 +570,7 @@ zygotine.SEG.tests = {
         $('#pdMean').val('90').trigger('change');
         $('#pdSd').val('5').trigger('change');
         $('#pdN').val('20').trigger('change');
+        $('#prngSeed').val('4444').trigger('change')
     },
 
     ecrireLogNUniform: function () {
@@ -526,6 +581,7 @@ zygotine.SEG.tests = {
         $('#withPastData').prop('checked', false);
         $('#obsValues').val(a).trigger('change');
         $('#oel').val('.95').trigger('change');
+        $('#prngSeed').val('5555').trigger('change')
     },
 
     ecrireNormUniform: function () {
@@ -536,5 +592,37 @@ zygotine.SEG.tests = {
         $('#spUniform').prop('checked', true).trigger('change');
         $('#obsValues').val(a).trigger('change');
         $('#oel').val('87.0').trigger('change');
+        $('#prngSeed').val('6666').trigger('change')
+    },
+    
+    ecrireLogNRiskband: function () {
+      
+      var a = "2.298|1.337|0.309|>0.231|>0.243|<3.402|<4.41|[0.212,1.477]|[0.1,2.22]"
+      a = new zygotine.M.MeasureList(a).toString('\r\n')
+      zygotine.SEG.reset()
+      $('#logN').prop('checked', true).trigger('change')
+      $('#obsValues').val(a).trigger('change')
+      $('#oel').val('0.5').trigger('change')
+      $('#prngSeed').val('7777').trigger('change')
+      $('#meth-riskband').click()
+      var cutOffVals = [0.1, 0.5, 1, 5]
+      $('#numregions').val(cutOffVals.length+1).change()
+      $('#rp_equalwts').prop('checked', true).change()
+      $('.cut-offs').each((i, el) => $(el).val(cutOffVals[i]).change())
+      $('#nIter').val(10000).change()
+      $('#nBurnin').val(1000).change()
     }
+    
 };
+
+zygotine.SEG.disableMethodDiv = function(ev) {
+  $currChosen = $('.method-chosen')
+  $currChosen.removeClass('method-chosen')
+  $currChosen.find('input, select').prop('disabled', true)
+  $target = ev instanceof Event ? $(ev.target) : $('input[name="method"]:checked')
+  let chosenVal = $target.val()
+  $chosen = $(`.method-candidate[data-val="${chosenVal}"]`)
+  $chosen.addClass('method-chosen')
+  $chosen.find('input, select').prop('disabled', false)
+  $('.demo-btn').each(function() { $(this).prop('disabled', !$(this).hasClass(`method-${chosenVal}`)) })
+}
