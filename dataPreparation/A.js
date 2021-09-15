@@ -1,4 +1,4 @@
-﻿zygotine = {};
+zygotine = {};
 zygotine.B = {};
 zygotine.O = {};
 
