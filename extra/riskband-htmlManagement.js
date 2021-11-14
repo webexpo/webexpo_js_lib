@@ -20,9 +20,7 @@
 function change_R()
 {
   // user changes the number of regions
-  let A = undefined
-  let reg = $('[name="regionProbs"]:checked').val()
-  DisplayRegionProbsTable(A, reg)
+  DisplayRegionProbsTable();
 } // end of change_R
 
 
@@ -33,9 +31,9 @@ function clear_data()
 } // end of clear_data
 
 
-function ClearRiskbandErrorMsg()
+function ClearErrorMsg()
 {
-  document.getElementById("riskband_error_msg").innerHTML = "";
+  document.getElementById("error_msg").innerHTML = "";
 } // end of ClearErrorMsg
 
 
@@ -49,7 +47,7 @@ function CopyRCodeWithMCMCResults()
 
 function DisplayRegionProbsTable(A, region_probs_value)
 {  
-  var R = document.getElementById("numregions").value;
+  var R = document.getElementById("R").value;
   var user_defined_region_probs = region_probs_value == 'user';
   
   // var default_prob = 1/R;
@@ -70,16 +68,17 @@ function DisplayRegionProbsTable(A, region_probs_value)
     }
   }
   
-  var new_table = "<table id='regions_table'><tr><td style='text-align: center;' data-i18n='cut-offs'></td>";
-  if (user_defined_region_probs) new_table += "<td style='text-align: center;' data-i18n='cut-off-probs'></td>";
+  var new_table = "<table><tr><td style='text-align: center;'>Cut-offs</td>";
   var udProbs = false
+  if (user_defined_region_probs) new_table += "<td style='text-align: center;'>Cut-off-delimited region prior probabilities</td>";
+  
   new_table += "</tr>";
   
   for (let i=0; i<R; i++)
   {
     if (user_defined_region_probs) 
     {
-      new_table += "<tr><td></td><td style='text-align: center;'><input class='ud-probs' name='udProb' style='text-align: center;' id='rpp" + i + "'  type='text'";
+      new_table += "<tr><td></td><td style='text-align: center;'><input style='text-align: center;' id='rpp" + i + "' class='ud-probs' type='text'";
       if (typeof default_prob !== 'undefined') new_table += " value='" + default_prob + "'";
       new_table += "></td></tr>";
     }
@@ -87,7 +86,7 @@ function DisplayRegionProbsTable(A, region_probs_value)
     if (i < R-1)
     {
       udProbs = true
-      new_table += "<tr><td style='text-align: center;'><input style='text-align: center;' class='cut-offs' name='cutOff' id='A" + i + "' type='text' value='" + A[i] + "'";
+      new_table += "<tr><td style='text-align: center;'><input style='text-align: center;' id='A" + i + "' class='cut-offs' type='text' value='" + A[i] + "'";
       new_table += "></td></tr>";
     }  
   }
@@ -95,6 +94,7 @@ function DisplayRegionProbsTable(A, region_probs_value)
   new_table += "</table>";
   
   document.getElementById("regions_table").innerHTML = new_table; 
+  
   $('#regions_table [data-i18n]').i18n()
   
   if ( zygotine.SEG.dataEntries.riskbandCutOffs != undefined ) {
@@ -109,27 +109,29 @@ function DisplayRegionProbsTable(A, region_probs_value)
 
 function ErrorMsg(error_code, A)
 {
-  var msgid
-  var extraInfo = ""
+  var msg;
   
-  if (error_code == 0)      msgid = "priors-must-sum-to-1"
-  else if (error_code == 1) msgid = "priors-must-be-non-neg"
-  else if (error_code == 2) {
-    msgid = "bad-cut-offs"
-    extraInfo = (A.length == 1) ? A[0] : A.join(", ")
+  if (error_code == 0)      msg = "Prior probabilities must sum to 1.";
+  else if (error_code == 1) msg = "Prior probabilities must all be non-negative.";
+  else if (error_code == 2)
+  {
+    if (A.length == 1) msg = "The cut-off value "  + A[0]         + " does";
+    else               msg = "The cut-off values " + A.join(", ") + " do";
+    
+    msg += " not cross the (mu, sigma) domain.";
   }
-  else if (error_code == 4) msgid = "cut-offs-must-ascend"
-  else if (error_code == 5) msgid = "no-repeat-cut-offs"
-  else if (error_code == 6) msgid = "invalid-cut-offs"
+  else if (error_code == 3) msg = "Please fill in data in the opposite text box.";
+  else if (error_code == 4) msg = "The cut-off values must be listed in ascending order.";
+  else if (error_code == 5) msg = "Cut-off values must not be duplicated.";
+  else if (error_code == 6) msg = "Log-Normal distribution assumption is incorrect with datasets including (null or) negative values.";
   
-  /* 
-  var btn = "<input type='button' value='Ok' onClick='ClearRiskbandErrorMsg()'>";
+   
+  /*var btn = "<input type='button' value='Ok' onClick='ClearErrorMsg()'>";
   
   var html = "<table style='background-color: gainsboro;' border=0><tr><td><span style='color: red; font-weight:bold;'>Error</span>&nbsp;&nbsp;" + msg + "</td><td style='text-align: right; padding-left: 20px;'>" + btn + "</td></tr></table>";
   
-  document.getElementById("riskband_error_msg").innerHTML = html;
-  */
- return `${$.i18n(msgid)}${extraInfo}.`
+  document.getElementById("error_msg").innerHTML = html;*/
+  return msg;
 } // end of ErrorMsg
 
 
@@ -141,7 +143,7 @@ function PleaseBePatient()
 
 function Read_A_fromHtml(R)
 {
-  var R = document.getElementById("numregions").value;
+  var R = document.getElementById("R").value;
   var A = [];
   
   for (let i=0; i<R-1; i++)

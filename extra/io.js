@@ -2,7 +2,7 @@
 // and preparing output for
 // Html Form
 //
-// Author: Patrick Bélisle
+// Author: Patrick Bï¿½lisle
 
 // Version 0.3 (May 2021)
 // [distributed]
@@ -109,9 +109,9 @@ MCMCParms = function(my_document)
 {
   var mcmc = {niter: 0, burnin: 0, monitor_burnin: false};
 
-  mcmc.niter  = Number(my_document.niter.value);
-  mcmc.burnin = Number(my_document.burnin.value);
-  mcmc.monitor_burnin = my_document.monitor_burnin.checked;
+  mcmc.niter  = Number(document.getElementById('nIter').value);
+  mcmc.burnin = Number(document.getElementById('nBurnin').value);
+  mcmc.monitor_burnin = document.getElementById('monitorBurnin').checked;
       
   return mcmc;
 } // end of MCMCParms
@@ -121,7 +121,7 @@ ReadData = function(my_document)
 {
   // Example of call: var data = ReadData(document.riskban_form);
   
-  var data_txt = my_document.data.value;  // Name of text-area must be -data-
+  var data_txt = document.getElementById('obsValues').value;  // Name of text-area must be -data-
   var data = ReadDataFromHtmlTextArea(data_txt);
   
   data.N = data.size();

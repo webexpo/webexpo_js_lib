@@ -1,4 +1,5 @@
 zygotine.BW = {};
+zygotine.X.common = zygotine.BW
 
 // à des fins de débogage
 zygotine.BW.memorize = false;

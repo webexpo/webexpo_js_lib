@@ -418,7 +418,6 @@ zygotine.SEG.setDataEntries = function () {
     })
     entries.method.reset()
     
-    DisplayRegionProbsTable()
     entries.riskbandCutOffs = new zygotine.X.RiskbandFloatSetDataEntry('cut-offs', 'Des nombres réels en ordre croissant correspondant aux bornes des régions')
     entries.riskbandUserDefnProbs = new zygotine.X.RiskbandFloatSetDataEntry('ud-probs', 'Des probabilités entre 0 et 1 en ordre croissant qui totalisent 1', 0, 1)
     
@@ -499,7 +498,7 @@ zygotine.SEG.reset = function () {
     entries.sigmaPrior.reset();
     entries.prngSeed.element.val(zygotine.X.genPseudoRand32Bit())
     $("#RCodeWithResults").html("")
-    ClearRiskbandErrorMsg()
+    //ClearRiskbandErrorMsg()
     
 };
 

@@ -1,7 +1,7 @@
 // Mixture algorithm
 // Html Management functions
 //
-// Author: Patrick Bélisle
+// Author: Patrick Bï¿½lisle
 //
 // Version 0.2 (May 2021)
 //  [distributed]

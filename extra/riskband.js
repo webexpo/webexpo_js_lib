@@ -1,5 +1,5 @@
 // Riskband/Banerjee algorithm
-// Author -- Patrick Bélisle
+// Author -- Patrick Bï¿½lisle
 
 // Version 0.2 (May 2021)
 // [distributed]
@@ -444,7 +444,7 @@ RiskbandSigmaGenObject.prototype =
           return xA.map(self.f, self);
       };
 
-      return new zNum.NumericIntegration(F, lowerBound, upperBound).compute();
+      return new zygotine.Num.NumericIntegration(F, lowerBound, upperBound).compute();
   },
 
   logf: function(sigma) 
@@ -580,8 +580,8 @@ function SimulatedValues(data, mu, sigma)
 run_Riskband = function()
 {
   var R = document.riskband_form.R.value;
-  var logNormalDistrn = document.riskband_form.logNormalDistrn.value == 1;
-  
+  var logNormalDistrn = document.getElementById('logN').checked;
+    
   console.clear();
   ClearErrorMsg();
   
@@ -595,8 +595,7 @@ run_Riskband = function()
   
     if (data.N == 0)
     {
-      ErrorMsg(3);
-      return;                                       
+      return { ok: false, errmsg: ErrorMsg(3) }
     }
     
     // Read region cut-offs values (A) & prior probabilities
@@ -616,13 +615,11 @@ run_Riskband = function()
        
     if (!is_sorted(A))
     {
-      ErrorMsg(4);
-      return;
+      return { ok: false, errmsg: ErrorMsg(4) }
     }
     else if (any_duplicated_cutoff(A))
     {
-      ErrorMsg(5);
-      return;
+      return { ok: false, errmsg: ErrorMsg(5) }
     }
     
 
@@ -643,16 +640,14 @@ run_Riskband = function()
       
       if (tot_prob != 1)
       {
-        ErrorMsg(0);
-        return;                                       
+        return { ok: false, errmsg: ErrorMsg(0) }
       }
       
       let any_negative_value = region_prior_prob.filter(p => p < 0).length > 0;
       
       if (any_negative_value)
       {
-        ErrorMsg(1);
-        return;
+        return { ok: false, errmsg: ErrorMsg(1) }
       }
     }
     
@@ -682,8 +677,7 @@ run_Riskband = function()
   { 
     if (data.any_le0())
     { 
-      ErrorMsg(6);
-      return; 
+      return { ok: false, errmsg: ErrorMsg(6) }
     }
   
     data.TakeLog();
@@ -699,8 +693,7 @@ run_Riskband = function()
     
     if (tmp.error)
     { 
-      ErrorMsg(2, tmp.A);
-      return;
+      return { ok: false, errmsg: ErrorMsg(2, tmp.A) }
     }
     
     log_prior_dens = tmp.prior;
@@ -834,4 +827,5 @@ run_Riskband = function()
 
   WorkComplete(sample);
   console.log("Goodbye!");
+  return { ok: true, burnin, sample }
 } // end of run_Riskband

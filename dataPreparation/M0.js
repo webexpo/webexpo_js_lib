@@ -1,4 +1,4 @@
-﻿zygotine.M = {};
+zygotine.M = {};
 
 /*****  ErrorLogging  **********/
 

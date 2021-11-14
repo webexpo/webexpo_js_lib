@@ -187,7 +187,7 @@ zygotine.M.validateModelParameters = function (result, model) {
     };
     
     var riskbandSpecificParamsValidator = function () {
-      var R = document.riskband_form.numregions.value;
+      var R = document.riskband_form.R.value;
       var logNormalDistrn = $('#logN').is(':checked')
       var A = Read_A_fromHtml(R)
       var region_prior_prob = [];
@@ -198,11 +198,11 @@ zygotine.M.validateModelParameters = function (result, model) {
       if ( A.filter(isNaN).length > 0 ) {
         addError(ErrorMsg(6))
       }
-      if (!A.sorted())
+      if (!is_sorted(A))
       {
         addError(ErrorMsg(4))
       }
-      else if (A.any_duplicated_cutoff())
+      else if (any_duplicated_cutoff(A))
       {
         addError(ErrorMsg(5))
       }
@@ -221,7 +221,7 @@ zygotine.M.validateModelParameters = function (result, model) {
 
         region_prior_prob = region_prior_prob.map(Number)
 
-        let tot_prob = region_prior_prob.sum()
+        let tot_prob = sum(region_prior_prob)
 
         if (tot_prob != 1)
         {
