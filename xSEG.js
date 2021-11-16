@@ -81,7 +81,7 @@ zygotine.SEG.Model.prototype.doCalculation = function () {
             let modelParameters = zygotine.SEG.createSEGUninformativeModelParameters(this.logN, oel, initMu, initSigma, muLower, muUpper, sdRangeInf, sdRangeSup);
             mdl = new zygotine.M.SEGUninformativeModel(ml, modelParameters, mcmc); // modif f�vrier 2020: "SEGInformedVarModel" remplac� par "SEGUninformativeModel"
         } else {
-          let modelParameters = zygotine.SEG.createSEGRiskbandModelParameters(this.logN)
+          let modelParameters = zygotine.SEG.createSEGRiskbandModelParameters(this.logN, oel)
           mdl = new zygotine.M.SEGRiskbandModel(ml, modelParameters, mcmc)
         }
 
@@ -224,8 +224,8 @@ zygotine.SEG.createSEGUninformativeModelParameters = function (logN, oel, initMu
     return params;
 };
 
-zygotine.SEG.createSEGRiskbandModelParameters = function (logN) {
-  var params = new zygotine.M.SEGRiskbandModelParameters(logN)
+zygotine.SEG.createSEGRiskbandModelParameters = function (logN, oel) {
+  var params = new zygotine.M.SEGRiskbandModelParameters(logN, oel)
   return params
 }
 

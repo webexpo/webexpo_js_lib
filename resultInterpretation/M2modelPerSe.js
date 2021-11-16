@@ -1082,8 +1082,8 @@ zygotine.M.WorkerDigest.prototype = {
 * @property {number} initMu
 * @property {number} initSigma
 */
-zygotine.M.SEGRiskbandModelParameters = function (logN) {
-  zygotine.M.ModelParameters.call(this, logN)
+zygotine.M.SEGRiskbandModelParameters = function (logN, oel) {
+  zygotine.M.ModelParameters.call(this, logN, oel)
   this.muLower = -3
   this.muUpper = 6.2
   this.gsdLower = 1.05
@@ -1138,6 +1138,10 @@ zygotine.M.SEGRiskbandModel.prototype.run = function (prngSeed, validationOnly) 
     result.chains.sdBurnin.data = rbres.burnin.sigma
     result.chains.muSample.data = rbres.sample.mu
     result.chains.sdSample.data = rbres.sample.sigma
+    
+    if (this.logN) {
+        result.adjustMuChains(this.oel)
+    }
   } else {
     result.addError(rbres.errmsg)
   }
