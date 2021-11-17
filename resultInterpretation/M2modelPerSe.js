@@ -1132,7 +1132,7 @@ zygotine.M.SEGRiskbandModel.prototype.run = function (prngSeed, validationOnly) 
 
   result.initChains(["mu", "sd"], mcmc.monitorBurnin ? mcmc.nBurnin : 0, nIter)
 
-  let rbres = run_Riskband()
+  let rbres = run_Riskband(this.specificParameters)
   if ( rbres.ok ) {
     result.chains.muBurnin.data = rbres.burnin.mu
     result.chains.sdBurnin.data = rbres.burnin.sigma

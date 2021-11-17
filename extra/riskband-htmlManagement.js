@@ -68,7 +68,7 @@ function DisplayRegionProbsTable(A, region_probs_value)
     }
   }
   
-  var new_table = "<table><tr><td style='text-align: center;'>Cut-offs</td>";
+  var new_table = "<table><tr><td style='text-align: center;' data-i18n='cut-offs'>Cut-offs</td>";
   var udProbs = false
   if (user_defined_region_probs) new_table += "<td style='text-align: center;'>Cut-off-delimited region prior probabilities</td>";
   

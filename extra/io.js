@@ -117,12 +117,12 @@ MCMCParms = function(my_document)
 } // end of MCMCParms
 
   
-ReadData = function(my_document)
+ReadData = function(my_document, specificParams)
 {
   // Example of call: var data = ReadData(document.riskban_form);
   
   var data_txt = document.getElementById('obsValues').value;  // Name of text-area must be -data-
-  var data = ReadDataFromHtmlTextArea(data_txt);
+  var data = ReadDataFromHtmlTextArea(data_txt, specificParams);
   
   data.N = data.size();
   data.any_censored = data.any_censored();
@@ -131,7 +131,7 @@ ReadData = function(my_document)
 } // end of ReadData
 
 
-ReadDataFromHtmlTextArea = function(data_txt)
+ReadDataFromHtmlTextArea = function(data_txt, specificParams)
 {
   const regex = /\S/g;
   const regex_lt = /</;
@@ -165,7 +165,7 @@ ReadDataFromHtmlTextArea = function(data_txt)
       }
       else if (data_lines[i].match(regex_bracket))
       {
-        let values = data_lines[i].replace(regex_bracket, "").split(',');
+        let values = data_lines[i].replace(regex_bracket, "").split('-');
         interval.gt.push(Number(values[0]));
         interval.lt.push(Number(values[1]));
       }
@@ -183,5 +183,13 @@ ReadDataFromHtmlTextArea = function(data_txt)
     data.interval = interval;
     data.lt = lt;
   
+  if ( specificParams.logN ) {
+    const divideByOel = y => y/specificParams.oel
+    data.y = data.y.map(divideByOel)
+    data.gt = data.gt.map(divideByOel)
+    data.lt = data.lt.map(divideByOel)
+    data.interval.lt = data.interval.lt.map(divideByOel)
+    data.interval.gt = data.interval.gt.map(divideByOel)
+  }
   return data;
 } // end of ReadDataFromHtmlTextArea

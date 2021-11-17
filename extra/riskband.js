@@ -577,7 +577,7 @@ function SimulatedValues(data, mu, sigma)
 // ==  Main function                                                          ==
 
 
-run_Riskband = function()
+run_Riskband = function(specificParams)
 {
   var R = document.riskband_form.R.value;
   var logNormalDistrn = document.getElementById('logN').checked;
@@ -591,7 +591,7 @@ run_Riskband = function()
     
     // Read data
     
-    var data = ReadData(document.riskband_form);
+    var data = ReadData(document.riskband_form, specificParams);
   
     if (data.N == 0)
     {
